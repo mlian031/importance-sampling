@@ -7,6 +7,8 @@
 *
 */
 
+use std::f64;
+
 use rand::distributions::Distribution;
 use statrs::distribution::{ContinuousCDF, Normal};
 
@@ -77,6 +79,8 @@ fn main() {
         strike: 158.23,
         risk_free_rate: 0.05,
     };
+
+    println!("Running {} simulations", params.num_sims);
 
     let expected_payoff = mc_expected_payoff(&params);
     println!("Estimated Expected Payoff: {}", expected_payoff);
