@@ -17,7 +17,7 @@ class MertonJumpDiffusionModel:
 
     def simulate_returns_path(self):
         # generate standard random variable
-        z = np.random.normal(0, 1)
+        z = np.random.normal(0, 1, size=self.steps)
         # generate poisson random variable
         n = np.random.poisson(lam=(self.lambda_ * self.dt), size=self.steps)
         # generate jump component
@@ -28,16 +28,16 @@ class MertonJumpDiffusionModel:
         )  # splits it into n='steps' number of intervals
 
         log_returns = (
-            self.s0
-            * np.exp(self.dt * (self.mu - 0.5 * self.sigma**2))
-            * np.exp(self.sigma * np.sqrt(self.dt) * z)
-            * np.exp(n * y)
+            (self.mu - 0.5 * self.sigma**2) * self.dt
+            + self.sigma * np.sqrt(self.dt) * z
+            + n * y
         )
 
         return t, log_returns
 
     def simulate_price_path(self):
         t, log_returns = self.simulate_returns_path()
+
         log_prices = np.cumsum(log_returns)
         prices = self.s0 * np.exp(np.insert(log_prices, 0, 0))
 
@@ -59,26 +59,58 @@ class MertonJumpDiffusionModel:
 def plot_paths(model, num_paths=10):
     """
     TODO:
-    Use matplotlib to plot the movement of the underlying with a default of 10 simulations
+    Use matplotlib to plot the movement of the underlying
+    with a default of 10 simulations
     """
+
+    fig, (price_plot, log_returns_plot) = pyplot.subplots(
+        1, 2, figsize=(12, 12)
+    )
 
     for _ in range(num_paths):
         times, prices = model.simulate_price_path()
-        times_1, log_returns = model.simulate_returns_path()
-        pyplot.plot(times, prices)
-        pyplot.plot(times_1, log_returns)
+        price_plot.plot(times, prices)
+
+    for _ in range(num_paths):
+        times, log_returns = model.simulate_returns_path()
+        log_returns_plot.plot(times, log_returns)
+
+    price_plot.title("Stock Price vs Time")
+    price_plot.xlabel("Time")
+    price_plot.ylabel("Stock Price")
+
+    log_returns_plot.title("Log Returns vs Time")
+    log_returns_plot.xlabel("Time")
+    log_returns_plot.ylabel("Log Returns")
+
+    fig.savefig("sample_paths.png")
 
 
 def plot_option_price_convergence(model, strike, num_simulations=10000):
     """
     TODO:
-    Use matplotlib to plot the convergence of the option price with 95% confidence intervals
+    Use matplotlib to plot the convergence of
+    the option price with 95% confidence intervals
     """
     pass
 
 
 def main():
     print("Merton Jump Diffusion Model Simulation")
+
+    model = MertonJumpDiffusionModel(
+        s0=100,
+        r=0.05,
+        mu=0.05,
+        lambda_=1.0,
+        sigma=0.2,
+        a=-0.05,
+        b=0.1,
+        t=1.0,
+        steps=252,
+    )
+
+    plot_paths(model)
 
 
 if __name__ == "__main__":
