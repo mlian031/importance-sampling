@@ -34,14 +34,14 @@ class MertonJumpDiffusionModel:
             * np.exp(n * y)
         )
 
-        return times, log_returns
+        return t, log_returns
 
     def simulate_price_path(self):
-        times, log_returns = self.simulate_returns_path()
+        t, log_returns = self.simulate_returns_path()
         log_prices = np.cumsum(log_returns)
         prices = self.s0 * np.exp(np.insert(log_prices, 0, 0))
 
-        return times, prices
+        return t, prices
 
     def european_call_payoff(self, strike):
         _, prices = self.simulate_price_path()
