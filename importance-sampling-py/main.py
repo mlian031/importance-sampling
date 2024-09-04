@@ -64,8 +64,8 @@ def plot_paths(model, num_paths=10):
     """
 
     fig, (price_plot, log_returns_plot) = pyplot.subplots(
-        1, 2, figsize=(12, 12)
-    )
+        1, 2, figsize=(12, 6)
+    )  # merge the two plots
 
     for _ in range(num_paths):
         times, prices = model.simulate_price_path()
@@ -73,17 +73,21 @@ def plot_paths(model, num_paths=10):
 
     for _ in range(num_paths):
         times, log_returns = model.simulate_returns_path()
-        log_returns_plot.plot(times, log_returns)
+        # use cumulative sum of log returns for the plot
+        cumulative_log_returns = np.cumsum(np.insert(log_returns, 0, 0))
+        log_returns_plot.plot(times, cumulative_log_returns)
 
-    price_plot.title("Stock Price vs Time")
-    price_plot.xlabel("Time")
-    price_plot.ylabel("Stock Price")
+    price_plot.set_title("Stock Price vs Time")
+    price_plot.set_xlabel("Time")
+    price_plot.set_ylabel("Stock Price")
 
-    log_returns_plot.title("Log Returns vs Time")
-    log_returns_plot.xlabel("Time")
-    log_returns_plot.ylabel("Log Returns")
+    log_returns_plot.set_title("Cumulative Log Returns vs Time")
+    log_returns_plot.set_xlabel("Time")
+    log_returns_plot.set_ylabel("Cumulative Log Returns")
 
+    pyplot.tight_layout()
     fig.savefig("sample_paths.png")
+    pyplot.close(fig)
 
 
 def plot_option_price_convergence(model, strike, num_simulations=10000):
@@ -99,13 +103,13 @@ def main():
     print("Merton Jump Diffusion Model Simulation")
 
     model = MertonJumpDiffusionModel(
-        s0=100,
+        s0=147.48,
         r=0.05,
         mu=0.05,
-        lambda_=1.0,
+        lambda_=1.05,
         sigma=0.2,
-        a=-0.05,
-        b=0.1,
+        a=-0.08,
+        b=0.4,
         t=1.0,
         steps=252,
     )
