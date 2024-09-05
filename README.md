@@ -1,14 +1,12 @@
 # Importance Sampling
 
-GBM implementation
+Implementation of Importance Sampling for a Jump Diffusion Model (JDM) Simulation.
 
-| Python | Rust |
-| --- | --- |
-| Unfinished | Done |
+## Base JDM simulation
 
 
-JDM implementation
+![](sample_paths.png)
 
-| Python | Rust |
-| --- | --- |
-| Unfinished | Unfinished |
+
+![](options_convergence_95_ci.png)
+
