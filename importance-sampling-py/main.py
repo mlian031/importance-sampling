@@ -1,6 +1,5 @@
 import numpy as np
 import matplotlib.pyplot as pyplot
-import scipy.stats as stats
 
 
 class MertonJumpDiffusionModel:
@@ -98,86 +97,103 @@ def plot_option_price_convergence(model, strike, num_simulations=10000):
     the option price with 95% confidence intervals
     """
     call_payoffs = np.zeros(num_simulations)
+    put_payoffs = np.zeros(num_simulations)
     for i in range(num_simulations):
         call_payoffs[i] = model.european_call_payoff(strike)
+        put_payoffs[i] = model.european_put_payoff(strike)
 
     call_cumulative_mean = np.cumsum(call_payoffs) / (
         np.arange(num_simulations) + 1
     )
-    call_cumulative_stdv = np.sqrt(
-        np.cumsum((call_payoffs - call_cumulative_mean) ** 2)
-        / (np.arange(num_simulations) + 1)
-    )
-
-    # from Kaggle, Python for Data - 23 - Confidence intervals
-    # see https://stats.stackexchange.com/q/596952
-    z_critical = stats.norm.ppf(q=0.975)
-    call_margin_error = z_critical * (
-        call_cumulative_stdv / np.sqrt(np.arange(num_simulations) + 1)
-    )
-
-    call_lower_ci = call_cumulative_mean - call_margin_error
-    call_upper_ci = call_cumulative_mean + call_margin_error
-
-    put_payoffs = np.zeros(num_simulations)
-    for i in range(num_simulations):
-        put_payoffs[i] = model.european_put_payoff(strike)
-
     put_cumulative_mean = np.cumsum(put_payoffs) / (
         np.arange(num_simulations) + 1
     )
 
+    call_cumulative_stdv = np.sqrt(
+        np.cumsum((call_payoffs - call_cumulative_mean) ** 2)
+        / (np.arange(num_simulations) + 1)
+    )
     put_cumulative_stdv = np.sqrt(
         np.cumsum((put_payoffs - put_cumulative_mean) ** 2)
         / (np.arange(num_simulations) + 1)
     )
 
-    put_margin_error = z_critical * (
-        put_cumulative_stdv / np.sqrt(np.arange(num_simulations) + 1)
-    )
+    # calculate confidence intervals at logarithmically spaced points
+    num_points = 20
+    points = np.logspace(0, np.log10(num_simulations), num_points).astype(int)
 
-    put_lower_ci = put_cumulative_mean - put_margin_error
-    put_upper_ci = put_cumulative_mean + put_margin_error
+    fig, (call_plot, put_plot) = pyplot.subplots(1, 2, figsize=(16, 8))
 
-    fig, (call_plot, put_plot) = pyplot.subplots(
-        1, 2, figsize=(12, 6)
-    )  # merge the two plot_paths
-
-    call_plot.semilogx(range(1, num_simulations + 1), call_cumulative_mean)
-    put_plot.semilogx(range(1, num_simulations + 1), put_cumulative_mean)
-
-    call_plot.fill_between(
-        range(num_simulations),
-        call_lower_ci,
-        call_upper_ci,
-        alpha=0.2,
+    call_plot.semilogx(
+        range(1, num_simulations + 1), call_cumulative_mean, label="Mean"
+    )  # change the x axis to log scale
+    call_plot.errorbar(
+        points,
+        call_cumulative_mean[points - 1],
+        yerr=1.96 * call_cumulative_stdv[points - 1] / np.sqrt(points),
+        fmt="o",
+        capsize=5,
+        color="red",
         label="95% CI",
     )
 
-    put_plot.fill_between(
-        range(num_simulations),
-        put_lower_ci,
-        put_upper_ci,
-        alpha=0.2,
+    put_plot.semilogx(
+        range(1, num_simulations + 1), put_cumulative_mean, label="Mean"
+    )
+    put_plot.errorbar(
+        points,
+        put_cumulative_mean[points - 1],
+        yerr=1.96 * put_cumulative_stdv[points - 1] / np.sqrt(points),
+        fmt="o",
+        capsize=5,
+        color="red",
         label="95% CI",
     )
 
     call_plot.set_title(
-        f"Option Price Convergence with 95\% Confidence Intervals (Strike={strike})"
+        "Call Option Price Convergence\nwith 95% Confidence Intervals",
+        fontsize=10,
     )
-    call_plot.set_ylabel("Estimated Option Price")
-    call_plot.set_xlabel("Number of Simulations")
-    call_plot.set_xlim(1, num_simulations)
-    call_plot.legend()
-
     put_plot.set_title(
-        f"Option Price Convergence with 95\% Confidence Intervals (Strike={strike})"
+        "Put Option Price Convergence\nwith 95% Confidence Intervals",
+        fontsize=10,
     )
-    put_plot.set_ylabel("Estimated Option Price")
-    put_plot.set_xlabel("Number of Simulations")
-    put_plot.set_xlim(1, num_simulations)
-    put_plot.legend()
 
+    for ax in [call_plot, put_plot]:
+        ax.set_ylabel("Estimated Option Price")
+        ax.set_xlabel("Number of Simulations")
+        ax.set_xlim(1, num_simulations)
+        ax.legend()
+
+    param_text = (
+        f"S0: {model.s0:.2f}, strike: {strike:.2f}\n "
+        f"r: {model.r:.2f}, μ: {model.mu:.2f}\n"
+        f"λ: {model.lambda_:.2f}, σ: {model.sigma:.2f}\n"
+        f"a: {model.a:.2f}, b: {model.b:.2f}\n"
+        f"T: {model.t:.2f}, Steps: {model.steps}"
+    )
+
+    fig.text(
+        0.82,
+        0.85105,
+        param_text,
+        transform=fig.transFigure,
+        fontsize=8,
+        verticalalignment="bottom",
+        bbox=dict(boxstyle="round", facecolor="wheat", alpha=0.5),
+    )
+
+    fig.text(
+        0.3247,
+        0.85105,
+        param_text,
+        transform=fig.transFigure,
+        fontsize=8,
+        verticalalignment="bottom",
+        bbox=dict(boxstyle="round", facecolor="wheat", alpha=0.5),
+    )
+
+    pyplot.tight_layout()
     fig.savefig("options_convergence_95_ci.png")
     pyplot.close(fig)
 
