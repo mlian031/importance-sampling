@@ -1,0 +1,132 @@
+import numpy as np
+from scipy.stats import norm
+from scipy.special import factorial
+from dataclasses import dataclass
+from typing import Dict, Tuple, Optional
+
+
+@dataclass
+class SimulationResults:
+    mean_price: float
+    std_error: float
+    individual_prices: np.ndarray
+    individual_std_errors: np.ndarray
+
+
+class MertonJDM:
+    def __init__(
+        self,
+        S0: float,
+        r: float,
+        sigma: float,
+        mu: float,
+        T: float,
+        K: float,
+        n_steps: int,
+        lambda_j: float,
+        sigma_j: float,
+        mu_j: float,
+    ):
+        self.S0 = float(S0)
+        self.r = float(r)
+        self.sigma = float(sigma)
+        self.mu = float(mu)
+        self.T = float(T)
+        self.K = float(K)
+        self.n_steps = int(n_steps)
+        self.lambda_j = float(lambda_j)
+        self.sigma_j = float(sigma_j)
+        self.mu_j = float(mu_j)
+        self.dt = self.T / self.n_steps
+        self.jump_mean = np.exp(float(mu_j) + 0.5 * float(sigma_j) ** 2)
+
+    def black_scholes_price(self) -> float:
+        d1 = (np.log(self.S0 / self.K) + (self.r + 0.5 * self.sigma**2) * self.T) / (
+            self.sigma * np.sqrt(self.T)
+        )
+        d2 = d1 - self.sigma * np.sqrt(self.T)
+        return float(
+            self.S0 * norm.cdf(d1) - self.K * np.exp(-self.r * self.T) * norm.cdf(d2)
+        )
+
+    def simulate_terminal_paths(
+        self, num_paths, S0, mu, sigma, T, lambda_j, mu_j, sigma_j
+    ):
+        """
+        Simulates terminal values for jump diffusion paths using vectorized calculations.
+        Returns log of terminal values.
+        """
+        # Generate normal random variables for diffusion
+        Z = np.random.normal(0, 1, num_paths)
+
+        # Generate Poisson random variables for jump counts
+        N = np.random.poisson(lambda_j * T, num_paths)
+
+        # Initialize M (sum of log jumps)
+        M = np.zeros(num_paths)
+
+        # For paths with jumps, generate and sum log jump sizes
+        jump_paths = N > 0
+        if np.any(jump_paths):
+            # Generate matrix of jump sizes where needed
+            max_jumps = np.max(N)
+            # Only generate jumps for paths that need them
+            Y = np.random.normal(mu_j, sigma_j, (np.sum(jump_paths), max_jumps))
+            # Sum up the relevant jumps for each path
+            M[jump_paths] = np.sum(
+                Y * (np.arange(max_jumps)[None, :] < N[jump_paths, None]), axis=1
+            )
+
+        # Compute terminal log values
+        X_T = np.log(S0) + (mu - 0.5 * sigma**2) * T + sigma * np.sqrt(T) * Z + M
+
+        return X_T
+
+    def compute_call_payoff(self, X_T, K, r, T):
+        """
+        Computes discounted call option payoff from log terminal values.
+        """
+        S_T = np.exp(X_T)
+        payoff = np.maximum(S_T - K, 0)
+        return np.exp(-r * T) * payoff
+
+    def closed_form_price(self, n_terms=10000):
+        """
+        Adapted from
+        Robert C. Merton,
+        Option pricing when underlying stock returns are discontinuous,
+        Journal of Financial Economics,
+        Volume 3, Issues 1–2,
+        1976,
+        Pages 125-144,
+        """
+
+        lambda_prime = self.lambda_j * self.jump_mean
+        price = 0
+
+        for n in range(n_terms):
+            sigma_n = np.sqrt(self.sigma**2 + n * self.sigma_j**2 / self.T)
+            r_n = (
+                self.r
+                - self.lambda_j * (self.jump_mean - 1)
+                + n * np.log(self.jump_mean) / self.T
+            )
+
+            d1 = (np.log(self.S0 / self.K) + (r_n + 0.5 * sigma_n**2) * self.T) / (
+                sigma_n * np.sqrt(self.T)
+            )
+            d2 = d1 - sigma_n * np.sqrt(self.T)
+
+            bs_price = self.S0 * norm.cdf(d1) - self.K * np.exp(
+                -self.r * self.T
+            ) * norm.cdf(d2)
+
+            term = (
+                np.exp(-lambda_prime * self.T)
+                * (lambda_prime * self.T) ** n
+                / factorial(n)
+                * bs_price
+            )
+            price += term
+
+        return price
