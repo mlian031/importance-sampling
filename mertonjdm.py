@@ -49,58 +49,75 @@ class MertonJDM:
             self.S0 * norm.cdf(d1) - self.K * np.exp(-self.r * self.T) * norm.cdf(d2)
         )
 
-    def simulate_terminal_paths(
-        self, num_paths, S0, mu, sigma, T, lambda_j, mu_j, sigma_j
-    ):
+    def simulate_terminal_paths(self, num_paths):
         """
         Simulates terminal values for jump diffusion paths using vectorized calculations.
         Returns log of terminal values.
+
+        Note: For risk-neutral pricing, we use r instead of mu in the drift term.
         """
+
         # Generate normal random variables for diffusion
         Z = np.random.normal(0, 1, num_paths)
 
+        # Brownian motion
+        W_T = Z * np.sqrt(self.T)
+
         # Generate Poisson random variables for jump counts
-        N = np.random.poisson(lambda_j * T, num_paths)
+        N = np.random.poisson(self.lambda_j * self.T, num_paths)
 
-        # Initialize M (sum of log jumps)
-        M = np.zeros(num_paths)
-
-        # For paths with jumps, generate and sum log jump sizes
+        sum_Y = np.zeros(num_paths)
         jump_paths = N > 0
-        if np.any(jump_paths):
-            # Generate matrix of jump sizes where needed
-            max_jumps = np.max(N)
-            # Only generate jumps for paths that need them
-            Y = np.random.normal(mu_j, sigma_j, (np.sum(jump_paths), max_jumps))
-            # Sum up the relevant jumps for each path
-            M[jump_paths] = np.sum(
-                Y * (np.arange(max_jumps)[None, :] < N[jump_paths, None]), axis=1
-            )
+        positive_jump_paths = N[jump_paths]
+        sum_Y[jump_paths] = np.random.normal(
+            loc=self.mu_j * positive_jump_paths,
+            scale=np.sqrt(positive_jump_paths) * self.sigma_j,
+        )
 
-        # Compute terminal log values
-        X_T = np.log(S0) + (mu - 0.5 * sigma**2) * T + sigma * np.sqrt(T) * Z + M
+        risk_neutral_drift = (
+            self.r
+            - 0.5 * self.sigma**2
+            - self.lambda_j * (np.exp(self.mu_j + 0.5 * self.sigma_j**2) - 1)
+        )
+
+        drift = risk_neutral_drift * self.T
+        diffusion = self.sigma * W_T + sum_Y
+        X_T = np.log(self.S0) + drift + diffusion
 
         return X_T
 
-    def compute_call_payoff(self, X_T, K, r, T):
+    def compute_call_payoff(self, X_T, K):
         """
         Computes discounted call option payoff from log terminal values.
         """
         S_T = np.exp(X_T)
         payoff = np.maximum(S_T - K, 0)
-        return np.exp(-r * T) * payoff
+        return payoff
 
-    def closed_form_price(self, n_terms=10000):
+    def estimate_with_n_paths(self, N: int, M: int):
+        price_estimates = np.zeros(M)
+
+        for m in range(M):
+            terminal_log_returns = self.simulate_terminal_paths(N)
+
+            payoffs = self.compute_call_payoff(terminal_log_returns, self.K)
+
+            price_estimates[m] = np.exp(-self.r * self.T) * np.mean(payoffs)
+
+        return price_estimates
+
+    def closed_form_price(self, n_terms=1000):
         """
-        Adapted from
+        Computes the closed-form price using Merton's jump-diffusion formula.
+
+        Reference:
         Robert C. Merton,
         Option pricing when underlying stock returns are discontinuous,
         Journal of Financial Economics,
         Volume 3, Issues 1–2,
         1976,
-        Pages 125-144,
+        Pages 125-144
         """
-
         lambda_prime = self.lambda_j * self.jump_mean
         price = 0
 
@@ -118,7 +135,7 @@ class MertonJDM:
             d2 = d1 - sigma_n * np.sqrt(self.T)
 
             bs_price = self.S0 * norm.cdf(d1) - self.K * np.exp(
-                -self.r * self.T
+                -r_n * self.T
             ) * norm.cdf(d2)
 
             term = (
