@@ -2,7 +2,6 @@ import numpy as np
 from scipy.stats import norm
 from scipy.special import factorial
 from dataclasses import dataclass
-from typing import Dict, Tuple, Optional
 
 
 @dataclass
@@ -41,6 +40,9 @@ class MertonJDM:
         self.jump_mean = np.exp(float(mu_j) + 0.5 * float(sigma_j) ** 2)
 
     def black_scholes_price(self) -> float:
+        """
+        Computes the closed form price using the black scholes model
+        """
         d1 = (np.log(self.S0 / self.K) + (self.r + 0.5 * self.sigma**2) * self.T) / (
             self.sigma * np.sqrt(self.T)
         )

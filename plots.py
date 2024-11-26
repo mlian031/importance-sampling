@@ -22,7 +22,6 @@ def create_convergence_plot_with_ci(
     # Create figure with two subplots
     fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 12))
 
-    # Add parameter information as figure caption
     param_text = (
         "Parameters: S₀=100, K=150, r=0.05, T=1.0, σ=0.2, μ=0.05\n"
         "Jump Parameters: λ=1.0, μⱼ=-0.1, σⱼ=0.2\n"
@@ -30,7 +29,6 @@ def create_convergence_plot_with_ci(
     )
     fig.suptitle(param_text, y=1.02, fontsize=10)
 
-    # Plot 1: Price Convergence with Error Bars
     relative_errors = np.abs(mean_estimates - analytical_price) / analytical_price * 100
 
     # Main convergence plot with error bars

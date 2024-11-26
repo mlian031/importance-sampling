@@ -19,11 +19,9 @@ def run_analysis():
     mu_j = -0.1  # Mean jump size
     sigma_j = 0.2  # Jump size volatility
 
-    # Simulation parameters
     n_steps = 252  # Number of time steps
-    budget = int(1e6)
+    budget = int(1e6)  # Budget for simulation
 
-    # Initialize the model
     model = MertonJDM(S0, r, sigma, mu, T, K, n_steps, lambda_j, sigma_j, mu_j)
 
     # Path configurations to test (logarithmically spaced)
@@ -32,13 +30,12 @@ def run_analysis():
 
     print("Running simulations...")
 
-    # Get analytical price using Merton's formula
     analytical_price = model.closed_form_price()
 
-    # Arrays to store results
     mean_estimates = np.zeros(len(path_counts))
     std_errors = np.zeros(len(path_counts))
     execution_times = np.zeros(len(path_counts))
+    rmse_values = np.zeros(len(path_counts))
 
     for i, N in enumerate(path_counts):
         M = int(budget / N)
@@ -46,26 +43,26 @@ def run_analysis():
         print(f"\nSimulating with N={N} paths, M={M} repetitions")
         start_time = time.time()
 
-        # Array to store M price estimates
         price_estimates = np.zeros(M)
 
-        # Perform M independent simulations
+        # Repeat the valuation of the option M times
         for m in range(M):
-            # Generate terminal paths and calculate payoffs
             terminal_log_returns = model.simulate_terminal_paths(N)
             payoffs = model.compute_call_payoff(terminal_log_returns, model.K)
             price_estimates[m] = np.exp(-model.r * model.T) * np.mean(payoffs)
 
-        # Calculate statistics across M repetitions
         mean_price = np.mean(price_estimates)
         std_error = np.std(price_estimates, ddof=1) / np.sqrt(M)
 
+        squared_errors = (price_estimates - analytical_price) ** 2
+        rmse = np.sqrt(np.mean(squared_errors))
+
         elapsed_time = time.time() - start_time
 
-        # Store results
         mean_estimates[i] = mean_price
         std_errors[i] = std_error
         execution_times[i] = elapsed_time
+        rmse_values[i] = rmse
 
         results_data.append(
             [
@@ -74,28 +71,28 @@ def run_analysis():
                 f"{analytical_price:.4f}",
                 f"{mean_price:.4f}",
                 f"{std_error:.4f}",
+                f"{rmse:.4f}",
                 f"{elapsed_time:.2f}",
                 f"{abs(mean_price - analytical_price) / analytical_price * 100:.2f}%",
             ]
         )
 
-    # Create convergence plot with confidence intervals
     create_convergence_plot_with_ci(
         path_counts, mean_estimates, std_errors, analytical_price, execution_times
     )
 
-    # Headers for the table
+    # Table headers
     headers = [
         "Paths (N)",
         "Repetitions (M)",
         "Analytical Price",
         "Mean MC Price",
         "Std Error",
+        "RMSE",
         "Time (s)",
         "Relative Error",
     ]
 
-    # Print results table
     print("\nResults Summary:")
     print(tabulate(results_data, headers=headers, tablefmt="grid"))
 
