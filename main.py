@@ -21,13 +21,13 @@ def run_analysis():
 
     # Simulation parameters
     n_steps = 252  # Number of time steps
-    M = 100  # Number of repetitions for each path count
+    budget = int(1e6)
 
     # Initialize the model
     model = MertonJDM(S0, r, sigma, mu, T, K, n_steps, lambda_j, sigma_j, mu_j)
 
     # Path configurations to test (logarithmically spaced)
-    path_counts = np.logspace(2, 5, 1000).astype(int)
+    path_counts = np.logspace(4, 5, 20).astype(int)
     results_data = []
 
     print("Running simulations...")
@@ -41,6 +41,8 @@ def run_analysis():
     execution_times = np.zeros(len(path_counts))
 
     for i, N in enumerate(path_counts):
+        M = int(budget / N)
+
         print(f"\nSimulating with N={N} paths, M={M} repetitions")
         start_time = time.time()
 

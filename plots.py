@@ -22,21 +22,30 @@ def create_convergence_plot_with_ci(
     # Create figure with two subplots
     fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 12))
 
-    # Plot 1: Price Convergence with Confidence Intervals
+    # Add parameter information as figure caption
+    param_text = (
+        "Parameters: S₀=100, K=150, r=0.05, T=1.0, σ=0.2, μ=0.05\n"
+        "Jump Parameters: λ=1.0, μⱼ=-0.1, σⱼ=0.2\n"
+        "Simulation: 252 steps/year, 1e6 budget"
+    )
+    fig.suptitle(param_text, y=1.02, fontsize=10)
+
+    # Plot 1: Price Convergence with Error Bars
     relative_errors = np.abs(mean_estimates - analytical_price) / analytical_price * 100
 
-    # Main convergence plot with confidence intervals
-    ax1.semilogx(
-        path_counts, mean_estimates, "bo-", label="Monte Carlo Estimate", markersize=4
-    )
-    ax1.fill_between(
+    # Main convergence plot with error bars
+    ax1.errorbar(
         path_counts,
-        mean_estimates - 1.96 * std_errors,
-        mean_estimates + 1.96 * std_errors,
-        color="blue",
-        alpha=0.2,
-        label="95% Confidence Interval",
+        mean_estimates,
+        yerr=1.96 * std_errors,  # 95% confidence intervals
+        fmt="bo-",
+        label="Monte Carlo Estimate",
+        markersize=4,
+        capsize=3,
+        capthick=1,
+        elinewidth=1,
     )
+
     ax1.axhline(
         y=analytical_price, color="red", linestyle="--", label="Analytical Price"
     )
@@ -59,6 +68,9 @@ def create_convergence_plot_with_ci(
         ]
     )
 
+    # Set x-axis to log scale
+    ax1.set_xscale("log")
+
     # Customize first plot
     ax1.set_xlabel("Number of Paths (N)")
     ax1.set_ylabel("Option Price")
@@ -73,7 +85,9 @@ def create_convergence_plot_with_ci(
     ax1.grid(True, which="both", linestyle="--", alpha=0.3)
 
     # Plot 2: Execution Time
-    ax2.loglog(path_counts, execution_times, "ro-", label="Execution Time")
+    ax2.loglog(
+        path_counts, execution_times, "ro-", label="Execution Time", markersize=3
+    )  # Smaller dots
 
     # Calculate and plot theoretical O(N) complexity
     reference_time = execution_times[0] * (path_counts / path_counts[0])
@@ -88,5 +102,7 @@ def create_convergence_plot_with_ci(
 
     # Adjust layout and save
     plt.tight_layout()
+    # Adjust figure margins to accommodate caption
+    plt.subplots_adjust(top=0.95)
     plt.savefig("merton_jdm_analysis.png", dpi=300, bbox_inches="tight")
     plt.close()
