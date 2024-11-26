@@ -15,9 +15,9 @@ def run_analysis():
     mu = r  # Risk-neutral drift
 
     # Jump parameters
-    lambda_j = 1.0  # Jump intensity
-    mu_j = -0.1  # Mean jump size
-    sigma_j = 0.2  # Jump size volatility
+    lambda_j = 0.0  # Jump intensity
+    mu_j = 0.0  # Mean jump size
+    sigma_j = 0.0  # Jump size volatility
 
     n_steps = 252  # Number of time steps
     budget = int(1e6)  # Budget for simulation
