@@ -2,6 +2,20 @@
 
 The goal of this program is to optimize the drift parameter of the geometric brownian motion for out-the-money options. The model of the underlying asset movement accounts for both continuous diffusion and discrete jumps in asset prices; however, the jump related parameters are set to zero in this program.
 
+## Usage
+
+```sh
+$ git clone git@github.com:mlian031/importance-sampling.git
+```
+
+To use the importance sampling module, checkout to `gbm-importance-sampling`
+
+```sh
+$ git checkout gbm-importance-sampling
+$ pip install -r requirements.txt
+$ python main.py
+```
+
 ## Citations
 
 P. Glasserman, Monte Carlo Methods in Financial Engineering, vol. 53. New York, NY: Springer New York, 2003. doi: 10.1007/978-0-387-21617-1.
