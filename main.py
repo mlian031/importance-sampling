@@ -6,33 +6,43 @@ import time
 from plots import create_convergence_plot_with_ci
 
 
+def get_float_input(prompt, default):
+    value = input(f"{prompt} [{default}]: ").strip()
+    return float(value) if value else default
+
+
+def get_int_input(prompt, default):
+    value = input(f"{prompt} [{default}]: ").strip()
+    return int(value) if value else default
+
+
 def run_analysis():
-    # Model parameters
-    S0 = 100.0
-    K = 150.0
-    r = 0.05
-    T = 1.0
-    sigma = 0.2
-    mu = r
+    print("\nEnter model parameters (press Enter to use default value):")
 
-    lambda_j = 0.0
-    mu_j = 0.0
-    sigma_j = 0.0
+    S0 = get_float_input("Initial stock price (S0)", 100.0)
+    K = get_float_input("Strike price (K)", 100.0)
+    r = get_float_input("Risk-free rate (r)", 0.05)
+    T = get_float_input("Time to maturity in years (T)", 1.0)
+    sigma = get_float_input("Volatility (sigma)", 0.2)
+    mu = r  # Setting mu = r for risk-neutral pricing
 
-    n_steps = 252
-    budget = int(1e6)
+    print("\nJump parameters:")
+    lambda_j = get_float_input("Jump intensity (lambda_j)", 0.0)
+    mu_j = get_float_input("Jump mean (mu_j)", 0.0)
+    sigma_j = get_float_input("Jump volatility (sigma_j)", 0.0)
+
+    print("\nSimulation parameters:")
+    n_steps = get_int_input("Number of time steps (n_steps)", 252)
+    budget = get_int_input("Simulation budget", int(1e6))
 
     model = MertonJDM(S0, r, sigma, mu, T, K, n_steps, lambda_j, sigma_j, mu_j)
     importance_sampler = ImportanceSampler(model)
 
-    # Optimize lambda parameter for importance sampling
     optimal_lambda, _ = importance_sampler.optimize_lambda(1000)
-
-    path_counts = np.logspace(4, 5, 20).astype(int)
+    path_counts = np.logspace(4, 5, 40).astype(int)
     results_data = []
 
-    print("Running simulations...")
-
+    print("\nRunning simulations...")
     analytical_price = model.closed_form_price()
 
     mean_estimates = np.zeros(len(path_counts))
@@ -113,6 +123,20 @@ def run_analysis():
             ]
         )
 
+    params = {
+        "S0": S0,
+        "K": K,
+        "r": r,
+        "T": T,
+        "sigma": sigma,
+        "mu": mu,
+        "lambda_j": lambda_j,
+        "mu_j": mu_j,
+        "sigma_j": sigma_j,
+        "n_steps": n_steps,
+        "budget": budget,
+    }
+
     create_convergence_plot_with_ci(
         path_counts,
         mean_estimates,
@@ -122,6 +146,7 @@ def run_analysis():
         analytical_price,
         execution_times,
         is_execution_times,
+        params,
     )
 
     headers = [
@@ -141,8 +166,11 @@ def run_analysis():
         "Var.Red",
     ]
 
+    avg_variance_reduction = np.mean(variance_reductions)
+
     print("\nResults Summary:")
     print(tabulate(results_data, headers=headers, tablefmt="grid"))
+    print(f"\nAverage Variance Reduction: {avg_variance_reduction:0.3f}x")
 
 
 if __name__ == "__main__":
