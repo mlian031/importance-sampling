@@ -35,9 +35,9 @@ $$
 
 where $\tilde{E}$ indicates expectation under $g$. This leads to the importance sampling estimator:
 
-$$
+```math
 \hat{\alpha}_g = \hat{\alpha}_g(n) = \frac{1}{n}\sum_{i=1}^n h(X_i)\frac{f(X_i)}{g(X_i)}
-$$
+```
 
 with $X_1,\ldots,X_n$ drawn from $g$. The ratio $f(X_i)/g(X_i)$ is called the likelihood ratio or Radon-Nikodym derivative.
 
