@@ -98,6 +98,9 @@ class ImportanceSampler:
                 best_lambda = result.x[0]
 
         final_result = self.compare_methods(num_paths, best_lambda)
+        print("\n============================")
+        print(f"Optimal Drift: {best_lambda}")
+        print("\n============================")
         return best_lambda, final_result.variance_reduction
 
     def compare_methods(self, num_paths, lambda_param) -> ImportanceSamplingResults:
