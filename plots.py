@@ -91,17 +91,18 @@ def create_convergence_plot_with_ci(
     ax2.legend(loc="best")
     ax2.grid(True, which="both", linestyle="--", alpha=0.3)
 
-    # Computational cost plot
+    # Computational cost plot with actual times
+    ax3.loglog(path_counts, execution_times, "bo-", label="Standard MC", markersize=3)
     ax3.loglog(
-        path_counts, execution_times, "bo-", label="Standard MC Time", markersize=3
+        path_counts,
+        is_execution_times,
+        "ro-",
+        label="Importance Sampling",
+        markersize=3,
     )
-    ax3.loglog(path_counts, is_execution_times, "ro-", label="IS Time", markersize=3)
-
-    reference_time = execution_times[0] * (path_counts / path_counts[0])
-    ax3.loglog(path_counts, reference_time, "k--", label="O(N) Reference", alpha=0.5)
 
     ax3.set_xlabel("Number of Paths (N)")
-    ax3.set_ylabel("Time (seconds)")
+    ax3.set_ylabel("Execution Time (seconds)")
     ax3.set_title("Computational Cost")
     ax3.grid(True, which="both", linestyle="--", alpha=0.3)
     ax3.legend()
