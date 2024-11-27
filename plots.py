@@ -6,20 +6,16 @@ def create_convergence_plot_with_ci(
     path_counts: np.ndarray,
     mean_estimates: np.ndarray,
     std_errors: np.ndarray,
+    is_mean_estimates: np.ndarray,
+    is_std_errors: np.ndarray,
     analytical_price: float,
     execution_times: np.ndarray,
+    is_execution_times: np.ndarray,
 ) -> None:
     """
     Create plots showing price convergence with confidence intervals and performance against number of paths.
-
-    Args:
-        path_counts: Array of path counts used
-        mean_estimates: Array of mean price estimates across M repetitions
-        std_errors: Array of standard errors for the M repetitions
-        analytical_price: Merton's analytical price
-        execution_times: Array of execution times for each path count
+    Includes both standard Monte Carlo and importance sampling results.
     """
-    # Create figure with two subplots
     fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 12))
 
     param_text = (
@@ -29,15 +25,32 @@ def create_convergence_plot_with_ci(
     )
     fig.suptitle(param_text, y=1.02, fontsize=10)
 
+    # Calculate relative errors for both methods
     relative_errors = np.abs(mean_estimates - analytical_price) / analytical_price * 100
+    is_relative_errors = (
+        np.abs(is_mean_estimates - analytical_price) / analytical_price * 100
+    )
 
-    # Main convergence plot with error bars
+    # Standard MC plot
     ax1.errorbar(
         path_counts,
         mean_estimates,
-        yerr=1.96 * std_errors,  # 95% confidence intervals
+        yerr=1.96 * std_errors,
         fmt="bo-",
-        label="Monte Carlo Estimate",
+        label="Standard Monte Carlo",
+        markersize=4,
+        capsize=3,
+        capthick=1,
+        elinewidth=1,
+    )
+
+    # Importance Sampling plot
+    ax1.errorbar(
+        path_counts,
+        is_mean_estimates,
+        yerr=1.96 * is_std_errors,
+        fmt="ro-",
+        label="Importance Sampling",
         markersize=4,
         capsize=3,
         capthick=1,
@@ -45,31 +58,37 @@ def create_convergence_plot_with_ci(
     )
 
     ax1.axhline(
-        y=analytical_price, color="red", linestyle="--", label="Analytical Price"
+        y=analytical_price, color="green", linestyle="--", label="Analytical Price"
     )
 
     # Add relative error on secondary y-axis
     ax1_twin = ax1.twinx()
     ax1_twin.semilogx(
-        path_counts, relative_errors, "g--", alpha=0.5, label="Relative Error"
+        path_counts,
+        relative_errors,
+        "b--",
+        alpha=0.5,
+        label="Standard MC Relative Error",
     )
-    ax1_twin.set_ylabel("Relative Error (%)", color="g")
+    ax1_twin.semilogx(
+        path_counts, is_relative_errors, "r--", alpha=0.5, label="IS Relative Error"
+    )
+    ax1_twin.set_ylabel("Relative Error (%)", color="black")
 
-    # Set y-axis limits for price with some padding
-    price_range = np.max(mean_estimates + 1.96 * std_errors) - np.min(
-        mean_estimates - 1.96 * std_errors
+    # Set y-axis limits for price
+    all_estimates = np.concatenate([mean_estimates, is_mean_estimates])
+    all_errors = np.concatenate([std_errors, is_std_errors])
+    price_range = np.max(all_estimates + 1.96 * all_errors) - np.min(
+        all_estimates - 1.96 * all_errors
     )
     ax1.set_ylim(
         [
-            np.min(mean_estimates - 1.96 * std_errors) - 0.1 * price_range,
-            np.max(mean_estimates + 1.96 * std_errors) + 0.1 * price_range,
+            np.min(all_estimates - 1.96 * all_errors) - 0.1 * price_range,
+            np.max(all_estimates + 1.96 * all_errors) + 0.1 * price_range,
         ]
     )
 
-    # Set x-axis to log scale
     ax1.set_xscale("log")
-
-    # Customize first plot
     ax1.set_xlabel("Number of Paths (N)")
     ax1.set_ylabel("Option Price")
     ax1.set_title("Price Convergence with 95% Confidence Intervals")
@@ -79,28 +98,24 @@ def create_convergence_plot_with_ci(
     lines2, labels2 = ax1_twin.get_legend_handles_labels()
     ax1.legend(lines1 + lines2, labels1 + labels2, loc="best")
 
-    # Add grid
     ax1.grid(True, which="both", linestyle="--", alpha=0.3)
 
-    # Plot 2: Execution Time
+    # Execution Time Plot
     ax2.loglog(
-        path_counts, execution_times, "ro-", label="Execution Time", markersize=3
-    )  # Smaller dots
+        path_counts, execution_times, "bo-", label="Standard MC Time", markersize=3
+    )
+    ax2.loglog(path_counts, is_execution_times, "ro-", label="IS Time", markersize=3)
 
-    # Calculate and plot theoretical O(N) complexity
     reference_time = execution_times[0] * (path_counts / path_counts[0])
     ax2.loglog(path_counts, reference_time, "k--", label="O(N) Reference", alpha=0.5)
 
-    # Customize second plot
     ax2.set_xlabel("Number of Paths (N)")
     ax2.set_ylabel("Time (seconds)")
     ax2.set_title("Computational Cost")
     ax2.grid(True, which="both", linestyle="--", alpha=0.3)
     ax2.legend()
 
-    # Adjust layout and save
     plt.tight_layout()
-    # Adjust figure margins to accommodate caption
     plt.subplots_adjust(top=0.95)
     plt.savefig("merton_jdm_analysis.png", dpi=300, bbox_inches="tight")
     plt.close()

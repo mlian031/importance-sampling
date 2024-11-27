@@ -18,11 +18,11 @@ class ImportanceSampler:
     def __init__(self, model: MertonJDM) -> None:
         self.model = model
 
-    def simulate_terminal_paths_standard(self, num_paths: int) -> np.ndarray:
+    def simulate_terminal_paths_standard(self, num_paths) -> np.ndarray:
         """Standard Monte Carlo simulation for terminal values"""
         return self.model.simulate_terminal_paths(num_paths)
 
-    def simulate_terminal_paths_importance(self, num_paths: int, lambda_param: float):
+    def simulate_terminal_paths_importance(self, num_paths, lambda_param):
         """
         Importance sampling simulation with modified drift
         Returns terminal log values and likelihood ratios
