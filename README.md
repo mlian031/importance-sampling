@@ -21,3 +21,5 @@ $ python main.py
 P. Glasserman, Monte Carlo Methods in Financial Engineering, vol. 53. New York, NY: Springer New York, 2003. doi: 10.1007/978-0-387-21617-1.
 
 Q. Zhao, G. Liu and G. Gu, "Variance Reduction Techniques of Importance Sampling Monte Carlo Methods for Pricing Options," Journal of Mathematical Finance, Vol. 3 No. 4, 2013, pp. 431-436. doi: 10.4236/jmf.2013.34045.
+
+Y. Su and M. C. Fu, "Importance sampling in derivative securities pricing," 2000 Winter Simulation Conference Proceedings (Cat. No.00CH37165), Orlando, FL, USA, 2000, pp. 587-596 vol.1, doi: 10.1109/WSC.2000.899767. keywords: {Monte Carlo methods;Pricing;Security;Stochastic processes;Educational institutions;Analysis of variance;Approximation algorithms;Computational modeling;Sampling methods;Cost accounting},
