@@ -48,7 +48,7 @@ with $X_1,\ldots,X_n$ drawn from $g$. The ratio $f(X_i)/g(X_i)$ is called the li
 The Merton Jump Diffusion model extends geometric Brownian motion by adding a compound Poisson process to model sudden price jumps. The stochastic differential equation is:
 
 $$
-\frac{dS(t)}{S(t-)} = \mu dt + \sigma dW(t) + dJ(t)
+\frac{dS(t)}{S(t)} = \mu dt + \sigma dW(t) + dJ(t)
 $$
 
 where:
