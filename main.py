@@ -34,6 +34,7 @@ def run_analysis():
     print("\nSimulation parameters:")
     n_steps = get_int_input("Number of time steps (n_steps)", 252)
     budget = get_int_input("Simulation budget", int(1e6))
+    R = get_int_input("Number of repetitions (R)", 100)
 
     model = MertonJDM(S0, r, sigma, mu, T, K, n_steps, lambda_j, sigma_j, mu_j)
     importance_sampler = ImportanceSampler(model)
@@ -45,81 +46,80 @@ def run_analysis():
     print("\nRunning simulations...")
     analytical_price = model.closed_form_price()
 
-    mean_estimates = np.zeros(len(path_counts))
-    std_errors = np.zeros(len(path_counts))
-    execution_times = np.zeros(len(path_counts))
-    rmse_values = np.zeros(len(path_counts))
+    mean_estimates = np.zeros((R, len(path_counts)))
+    std_errors = np.zeros((R, len(path_counts)))
+    execution_times = np.zeros((R, len(path_counts)))
+    rmse_values = np.zeros((R, len(path_counts)))
 
-    is_mean_estimates = np.zeros(len(path_counts))
-    is_std_errors = np.zeros(len(path_counts))
-    is_execution_times = np.zeros(len(path_counts))
-    is_rmse_values = np.zeros(len(path_counts))
-    variance_reductions = np.zeros(len(path_counts))
+    is_mean_estimates = np.zeros((R, len(path_counts)))
+    is_std_errors = np.zeros((R, len(path_counts)))
+    is_execution_times = np.zeros((R, len(path_counts)))
+    is_rmse_values = np.zeros((R, len(path_counts)))
+    variance_reductions = np.zeros((R, len(path_counts)))
 
     for i, N in enumerate(path_counts):
         M = int(budget / N)
-        print(f"\nSimulating with N={N} paths, M={M} repetitions")
+        print(f"\nSimulating with N={N} paths, M={M} repetitions, R={R} outer repetitions")
 
-        # Standard Monte Carlo
-        start_time = time.time()
-        price_estimates = np.zeros(M)
-        for m in range(M):
-            terminal_log_returns = model.simulate_terminal_paths(N)
-            payoffs = model.compute_call_payoff(terminal_log_returns, model.K)
-            price_estimates[m] = np.exp(-model.r * model.T) * np.mean(payoffs)
+        for r in range(R):
+            # Standard Monte Carlo
+            start_time = time.time()
+            price_estimates = np.zeros(M)
+            for m in range(M):
+                terminal_log_returns = model.simulate_terminal_paths(N)
+                payoffs = model.compute_call_payoff(terminal_log_returns, model.K)
+                price_estimates[m] = np.exp(-model.r * model.T) * np.mean(payoffs)
 
-        mean_price = np.mean(price_estimates)
-        std_error = np.std(price_estimates, ddof=1) / np.sqrt(M)
-        elapsed_time = time.time() - start_time
-        rmse = np.sqrt(np.mean((price_estimates - analytical_price) ** 2))
+            mean_estimates[r, i] = np.mean(price_estimates)
+            std_errors[r, i] = np.std(price_estimates, ddof=1) / np.sqrt(M)
+            execution_times[r, i] = time.time() - start_time
+            rmse_values[r, i] = np.sqrt(np.mean((price_estimates - analytical_price) ** 2))
 
-        # Importance Sampling
-        is_start_time = time.time()
-        is_price_estimates = np.zeros(M)
-        for m in range(M):
-            terminal_values, lr = importance_sampler.simulate_terminal_paths_importance(
-                N, optimal_lambda
-            )
-            payoffs = model.compute_call_payoff(terminal_values, model.K)
-            weighted_payoffs = payoffs * lr
-            is_price_estimates[m] = np.exp(-model.r * model.T) * np.mean(
-                weighted_payoffs
-            )
+            # Importance Sampling
+            is_start_time = time.time()
+            is_price_estimates = np.zeros(M)
+            for m in range(M):
+                terminal_values, lr = importance_sampler.simulate_terminal_paths_importance(
+                    N, optimal_lambda
+                )
+                payoffs = model.compute_call_payoff(terminal_values, model.K)
+                weighted_payoffs = payoffs * lr
+                is_price_estimates[m] = np.exp(-model.r * model.T) * np.mean(weighted_payoffs)
 
-        is_mean_price = np.mean(is_price_estimates)
-        is_std_error = np.std(is_price_estimates, ddof=1) / np.sqrt(M)
-        is_elapsed_time = time.time() - is_start_time
-        is_rmse = np.sqrt(np.mean((is_price_estimates - analytical_price) ** 2))
-        variance_reduction = (std_error / is_std_error) ** 2
+            is_mean_estimates[r, i] = np.mean(is_price_estimates)
+            is_std_errors[r, i] = np.std(is_price_estimates, ddof=1) / np.sqrt(M)
+            is_execution_times[r, i] = time.time() - is_start_time
+            is_rmse_values[r, i] = np.sqrt(np.mean((is_price_estimates - analytical_price) ** 2))
+            variance_reductions[r, i] = (std_errors[r, i] / is_std_errors[r, i]) ** 2
 
-        # Store results
-        mean_estimates[i] = mean_price
-        std_errors[i] = std_error
-        execution_times[i] = elapsed_time
-        rmse_values[i] = rmse
-
-        is_mean_estimates[i] = is_mean_price
-        is_std_errors[i] = is_std_error
-        is_execution_times[i] = is_elapsed_time
-        is_rmse_values[i] = is_rmse
-        variance_reductions[i] = variance_reduction
+        # Store average results for display
+        mc_mean = np.mean(mean_estimates[:, i])
+        mc_stderr = np.mean(std_errors[:, i])
+        mc_rmse = np.mean(rmse_values[:, i])
+        mc_time = np.mean(execution_times[:, i])
+        
+        is_mean = np.mean(is_mean_estimates[:, i])
+        is_stderr = np.mean(is_std_errors[:, i])
+        is_rmse = np.mean(is_rmse_values[:, i])
+        is_time = np.mean(is_execution_times[:, i])
+        var_red = np.mean(variance_reductions[:, i])
 
         results_data.append(
             [
                 N,
                 M,
                 f"{analytical_price:.4f}",
-                f"{mean_price:.4f}",
-                f"{std_error:.4f}",
-                f"{rmse:.4f}",
-                f"{elapsed_time:.2f}",
-                f"{abs(mean_price - analytical_price) / analytical_price * 100:.2f}%",
-                f"{is_mean_price:.4f}",
-                f"{is_std_error:.4f}",
+                f"{mc_mean:.4f}",
+                f"{mc_stderr:.4f}",
+                f"{mc_rmse:.4f}",
+                f"{mc_time:.2f}",
+                f"{abs(mc_mean - analytical_price) / analytical_price * 100:.2f}%",
+                f"{is_mean:.4f}",
+                f"{is_stderr:.4f}",
                 f"{is_rmse:.4f}",
-                f"{is_elapsed_time:.2f}",
-                f"{abs(is_mean_price - analytical_price) / analytical_price * 100:.2f}%",
-                f"{variance_reduction:.2f}x",
+                f"{is_time:.2f}",
+                f"{abs(is_mean - analytical_price) / analytical_price * 100:.2f}%",
+                f"{var_red:.2f}x",
             ]
         )
 
@@ -139,13 +139,13 @@ def run_analysis():
 
     create_convergence_plot_with_ci(
         path_counts,
-        mean_estimates,
-        std_errors,
-        is_mean_estimates,
-        is_std_errors,
+        np.mean(mean_estimates, axis=0),
+        np.mean(std_errors, axis=0),
+        np.mean(is_mean_estimates, axis=0),
+        np.mean(is_std_errors, axis=0),
         analytical_price,
-        execution_times,
-        is_execution_times,
+        np.mean(execution_times, axis=0),
+        np.mean(is_execution_times, axis=0),
         params,
     )
 
