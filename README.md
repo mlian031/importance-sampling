@@ -118,7 +118,7 @@ In essence, the algorithm identifies the optimal drift adjustment by:
 The average variance reduction for this particular simulation is: 
 
 $$
-\frac{\text{Mean Var}_\text{MC}}{\text{Mean Var}_\text{IS}} = 13.306
+\frac{\text{Mean Var MC}}{\text{Mean Var IS}} = 13.306
 $$
 
 ![](merton_jdm_analysis.png)
