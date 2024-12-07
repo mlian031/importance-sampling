@@ -40,7 +40,7 @@ def run_analysis():
     importance_sampler = ImportanceSampler(model)
 
     optimal_lambda, _ = importance_sampler.optimize_lambda(1000)
-    path_counts = np.logspace(4, 5, 40).astype(int)
+    path_counts = np.logspace(3, 5, 50).astype(int)
     results_data = []
 
     print("\nRunning simulations...")
@@ -58,7 +58,8 @@ def run_analysis():
     variance_reductions = np.zeros((R, len(path_counts)))
 
     for i, N in enumerate(path_counts):
-        M = int(budget / N)
+        # M = int(budget / N)
+        M = 100
         print(f"\nSimulating with N={N} paths, M={M} repetitions, R={R} outer repetitions")
 
         for r in range(R):
@@ -126,7 +127,7 @@ def run_analysis():
     params = {
         "S0": S0,
         "K": K,
-        "r": r,
+        "r": mu,
         "T": T,
         "sigma": sigma,
         "mu": mu,

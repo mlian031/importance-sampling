@@ -6,12 +6,8 @@ The goal of this program is to optimize the drift parameter of the geometric bro
 
 ```sh
 $ git clone git@github.com:mlian031/importance-sampling.git
-```
-
-To use the importance sampling module, checkout to `gbm-importance-sampling`
-
-```sh
-$ git checkout gbm-importance-sampling
+$ cd importance-sampling
+$ python -m venv venv && source venv/bin/activate
 $ pip install -r requirements.txt
 $ python main.py
 ```
@@ -85,14 +81,43 @@ where $r$ is the risk-free rate and $m = E[Y_j - 1]$ compensates for the jumps.
 
 > From Glasserman, Monte Carlo Methods in Financial Engineering
 
+## Importance sampling implementation
+
+The optimal $\lambda$ is determined by maximizing the variance reduction ratio, defined as:  
+$$
+\text{Variance Reduction} = \left(\frac{\text{Standard MC Standard Error}}{\text{IS Standard Error}}\right)^2
+$$
+This is achieved by minimizing the negative of this ratio:
+$$
+\text{Objective Function: } -\text{Variance Reduction}
+$$
+
+The bounds for $\lambda$ are:  
+$$
+\lambda_{\text{lower}} = \max(0.001, r - 2\sigma), \quad \lambda_{\text{upper}} = r + 2\sigma
+$$
+These bounds are centered around the risk-free rate $r$, corresponding to the mean $\mu$ under the risk-neutral measure, adjusted by $\pm 2\sigma$, encompassing approximately 95% of the distribution in a normal context.
+
+To enhance the likelihood of finding the global optimum, the algorithm tests multiple initial values for $\lambda$ within these bounds. 
+
+The optimization uses `scipy.optimize.minimize` with the `L-BFGS-B` method. This algorithm iteratively computes the gradient of the objective function and updates $\lambda$ (distinct from the Poisson intensity parameter $\lambda_j$ using an approximate Hessian. The process continues until the change in the objective function or the gradient norm is below the default tolerance.
+
+In essence, the algorithm identifies the optimal drift adjustment by:
+1. Simulating with an initial $\lambda$.
+2. Optimizing $\lambda$ to maximize variance reduction.
+3. Iteratively refining the simulation and selecting the $\lambda$ with the highest variance reduction ratio across multiple initial points.
+
+
 ## Sample simulations
+
+The average variance reduction for this particular simulation is: 
+
+$$
+\frac{\text{Mean Var}_\text{MC}}{\text{Mean Var}_\text{IS}} = 13.306
+$$
 
 ![](merton_jdm_analysis.png)
 
 ## Citations
 
 P. Glasserman, Monte Carlo Methods in Financial Engineering, vol. 53. New York, NY: Springer New York, 2003. doi: 10.1007/978-0-387-21617-1.
-
-Q. Zhao, G. Liu and G. Gu, "Variance Reduction Techniques of Importance Sampling Monte Carlo Methods for Pricing Options," Journal of Mathematical Finance, Vol. 3 No. 4, 2013, pp. 431-436. doi: 10.4236/jmf.2013.34045.
-
-Y. Su and M. C. Fu, "Importance sampling in derivative securities pricing," 2000 Winter Simulation Conference Proceedings (Cat. No.00CH37165), Orlando, FL, USA, 2000, pp. 587-596 vol.1, doi: 10.1109/WSC.2000.899767.
