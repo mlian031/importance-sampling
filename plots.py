@@ -13,6 +13,44 @@ def create_convergence_plot_with_ci(
     is_execution_times: np.ndarray,
     params: dict,
 ) -> None:
+    """
+    Create a three-panel plot showing convergence analysis of Monte Carlo simulations.
+
+    Parameters
+    ----------
+    path_counts : ndarray
+        Array of different path counts used in simulations.
+    mean_estimates : ndarray
+        Mean price estimates from standard Monte Carlo.
+    std_errors : ndarray
+        Standard errors from standard Monte Carlo.
+    is_mean_estimates : ndarray
+        Mean price estimates from Importance Sampling.
+    is_std_errors : ndarray
+        Standard errors from Importance Sampling.
+    analytical_price : float
+        The true analytical price for comparison.
+    execution_times : ndarray
+        Execution times for standard Monte Carlo simulations.
+    is_execution_times : ndarray
+        Execution times for Importance Sampling simulations.
+    params : dict
+        Dictionary containing model parameters for plot annotation.
+        Must include: 'S0', 'K', 'r', 'T', 'sigma', 'mu', 'lambda_j',
+        'mu_j', 'sigma_j', 'n_steps', 'budget'.
+
+    Returns
+    -------
+    None
+        Saves the plot to 'merton_jdm_analysis.png'.
+
+    Notes
+    -----
+    Creates three subplots:
+    1. Price convergence with confidence intervals
+    2. Relative error convergence
+    3. Computational cost comparison
+    """
     fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(12, 15))
 
     param_text = (

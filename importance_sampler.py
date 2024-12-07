@@ -103,9 +103,36 @@ class ImportanceSampler:
         print("\n============================")
         return best_lambda, final_result.variance_reduction
 
-    def compare_methods(self, num_paths, lambda_param) -> ImportanceSamplingResults:
+    def compare_methods(self, num_paths: int, lambda_param: float) -> ImportanceSamplingResults:
         """
-        Compare standard MC with importance sampling
+        Compare standard Monte Carlo with importance sampling for option pricing.
+
+        Parameters
+        ----------
+        num_paths : int
+            Number of simulation paths to use.
+        lambda_param : float
+            The importance sampling drift parameter.
+
+        Returns
+        -------
+        ImportanceSamplingResults
+            A dataclass containing:
+            - standard_mc_price : float
+                Option price from standard Monte Carlo
+            - standard_mc_stderr : float
+                Standard error from standard Monte Carlo
+            - is_price : float
+                Option price from importance sampling
+            - is_stderr : float
+                Standard error from importance sampling
+            - variance_reduction : float
+                Variance reduction ratio achieved
+
+        Notes
+        -----
+        The variance reduction ratio is calculated as (stderr_std/stderr_is)^2,
+        where a higher value indicates better performance of importance sampling.
         """
         # Standard Monte Carlo
         terminal_values_std = self.simulate_terminal_paths_standard(num_paths)

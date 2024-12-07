@@ -6,17 +6,66 @@ import time
 from plots import create_convergence_plot_with_ci
 
 
-def get_float_input(prompt, default):
+def get_float_input(prompt: str, default: float) -> float:
+    """
+    Get a float input from the user with a default value.
+
+    Parameters
+    ----------
+    prompt : str
+        The prompt message to display to the user.
+    default : float
+        The default value to use if no input is provided.
+
+    Returns
+    -------
+    float
+        The user input value or the default value.
+    """
     value = input(f"{prompt} [{default}]: ").strip()
     return float(value) if value else default
 
 
-def get_int_input(prompt, default):
+def get_int_input(prompt: str, default: int) -> int:
+    """
+    Get an integer input from the user with a default value.
+
+    Parameters
+    ----------
+    prompt : str
+        The prompt message to display to the user.
+    default : int
+        The default value to use if no input is provided.
+
+    Returns
+    -------
+    int
+        The user input value or the default value.
+    """
     value = input(f"{prompt} [{default}]: ").strip()
     return int(value) if value else default
 
 
 def run_analysis():
+    """
+    Run the Monte Carlo simulation analysis for option pricing.
+    
+    This function performs the following steps:
+    1. Collects model parameters from user input
+    2. Initializes the Merton Jump Diffusion Model
+    3. Runs both standard Monte Carlo and Importance Sampling simulations
+    4. Compares results and generates performance metrics
+    5. Creates visualization plots
+    6. Outputs tabulated results
+    
+    The analysis includes:
+    - Price convergence analysis
+    - Standard error comparison
+    - Execution time measurement
+    - Variance reduction calculation
+    
+    Results are displayed in a formatted table and saved in plots.
+    """
     print("\nEnter model parameters (press Enter to use default value):")
 
     S0 = get_float_input("Initial stock price (S0)", 100.0)
