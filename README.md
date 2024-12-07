@@ -84,23 +84,28 @@ where $r$ is the risk-free rate and $m = E[Y_j - 1]$ compensates for the jumps.
 ## Importance sampling implementation
 
 The optimal $\lambda$ is determined by maximizing the variance reduction ratio, defined as:  
+
 $$
 \text{Variance Reduction} = \left(\frac{\text{Standard MC Standard Error}}{\text{IS Standard Error}}\right)^2
 $$
+
 This is achieved by minimizing the negative of this ratio:
+
 $$
 \text{Objective Function: } -\text{Variance Reduction}
 $$
 
 The bounds for $\lambda$ are:  
+
 $$
 \lambda_{\text{lower}} = \max(0.001, r - 2\sigma), \quad \lambda_{\text{upper}} = r + 2\sigma
 $$
+
 These bounds are centered around the risk-free rate $r$, corresponding to the mean $\mu$ under the risk-neutral measure, adjusted by $\pm 2\sigma$, encompassing approximately 95% of the distribution in a normal context.
 
 To enhance the likelihood of finding the global optimum, the algorithm tests multiple initial values for $\lambda$ within these bounds. 
 
-The optimization uses `scipy.optimize.minimize` with the `L-BFGS-B` method. This algorithm iteratively computes the gradient of the objective function and updates $\lambda$ (distinct from the Poisson intensity parameter $\lambda_j$ using an approximate Hessian. The process continues until the change in the objective function or the gradient norm is below the default tolerance.
+The optimization uses `scipy.optimize.minimize` with the `L-BFGS-B` method. This algorithm iteratively computes the gradient of the objective function and updates $\lambda$ (distinct from the Poisson intensity parameter $\lambda_j$) using an approximate Hessian. The process continues until the change in the objective function or the gradient norm is below the default tolerance.
 
 In essence, the algorithm identifies the optimal drift adjustment by:
 1. Simulating with an initial $\lambda$.
