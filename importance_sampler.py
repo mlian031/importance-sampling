@@ -83,7 +83,7 @@ class ImportanceSampler:
         # Try multiple starting points
         best_result = float("inf")
         best_lambda = None
-        starting_points = np.linspace(lambda_lower, lambda_upper, 5)
+        starting_points = np.linspace(lambda_lower, lambda_upper, 10)
 
         for start_point in starting_points:
             result = minimize(
