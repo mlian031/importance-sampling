@@ -108,7 +108,7 @@ To avoid computational issues when $G(Z) = 0$, the program substitutes a small s
 The optimization problem follows Equation (2.8) from Glasserman and Heidelberger (2000), where the goal is to maximize:
 
 $$
-\max_{z \in D} \left \{ F(Z) - \frac{1}{2}z'z \right \}
+\max_{z \in D} \left\lbrace F(Z) - \frac{1}{2}z'z \right\rbrace
 $$
 
 Here, $z \in D$ represents the feasible set for the control variates or drift adjustment in the importance sampling distribution.
