@@ -108,7 +108,7 @@ To avoid computational issues when $G(Z) = 0$, the program substitutes a small s
 The optimization problem follows Equation (2.8) from Glasserman and Heidelberger (2000), where the goal is to maximize:
 
 $$
-\max_{z \in D} \left\{ F(Z) - \frac{1}{2}z'z \right\}
+\max_{z \in D} \left \{ F(Z) - \frac{1}{2}z'z \right \}
 $$
 
 Here, $z \in D$ represents the feasible set for the control variates or drift adjustment in the importance sampling distribution.
@@ -171,9 +171,17 @@ Define $w(Z,\mu) = G(Z)^2 e^{-\mu Z + \tfrac12 \mu^2} \mathbb{1}_D$
 
 $$
 \mathbb{E}\left[ w(Z,\mu)(-Z+\mu) \right] = 0 \\
+$$
+$$
 \mathbb{E}\left[-Z w(Z,\mu) \right] + \mu\mathbb{E}\left[w(Z, \mu) \right] = 0 \\
+$$
+$$
 -\mathbb{E}\left[Z w(Z, \mu)\right] + \mu\mathbb{E}\left[w(Z, \mu) \right] = 0 \\
+$$
+$$
 \mu\mathbb{E}\left[w(Z, \mu) \right] = \mathbb{E}\left[Z w(Z, \mu)\right] \\
+$$
+$$
 \mu = \frac{\mathbb{E}\left[Zw(Z, \mu)\right]}{\mathbb{E}\left[w(Z, \mu) \right]}
 $$
 
@@ -190,6 +198,16 @@ Then we pick an initial guess $\mu^{(0)}$ and plug $\mu^{(0)}$ into the right-ha
 **Remark:** There is no significant difference in speed or accuracy between solving 2.8 or solving 2.5 using the fixed-point method. I will upload benchmarks soon.
 
 # Sample
+
+Parameters:
+- $S_0 = 100$
+- $K = 200$
+- $r = 0.05$
+- $\sigma = 0.2$
+- $T = 1.0$
+
+This is the result of a deep out-the-money option with $K = 200$ and $S_0 = 100$.
+
 
 ![](monte_carlo_vs_importance_sampling.png)
 
