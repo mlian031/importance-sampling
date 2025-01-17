@@ -80,7 +80,7 @@ def black_scholes_call_price(S0, K, r, sigma, T):
 
 # Parameters for the European call
 S0 = 100.0
-K = 200.0
+K = 120.0
 r = 0.05
 sigma = 0.2
 T = 1.0
@@ -156,7 +156,12 @@ plt.axhline(bs_price, color='red', linestyle='--', label='Black-Scholes Analytic
 plt.xscale("log")
 plt.xlabel('Number of Paths (N)')
 plt.ylabel('Price Estimates')
-plt.title('Monte Carlo vs. Importance Sampling with 95% CI')
+
+# Include simulation parameters in the plot title
+title = f"Monte Carlo vs. Importance Sampling with 95% CI\n"
+title += f"S0={S0}, K={K}, r={r}, sigma={sigma}, T={T}, M={M}"
+plt.title(title)
+
 plt.legend()
 plt.grid(True)
 
