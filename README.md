@@ -146,24 +146,24 @@ $$
 Now we differentiate:
 
 $$
-\frac{d}{d\mu} \, e^{-\mu z + \tfrac12\,\mu^2} = e^{-\mu z + \tfrac12\,\mu^2} \, \frac{d}{d\mu} \, \left[ -\mu z + \frac{1}{2} \mu^2 \right] \\
-= e^{-\mu z + \tfrac12\,\mu^2} \, (-z + \mu)
+\frac{d}{d\mu} e^{-\mu z + \tfrac12 \mu^2} = e^{-\mu z + \tfrac12 \mu^2} \frac{d}{d\mu} \left[ -\mu z + \frac{1}{2} \mu^2 \right] \\
+= e^{-\mu z + \tfrac12 \mu^2}  (-z + \mu)
 $$
 
 Putting this back into the integral, 
 
 $$
-\frac{d}{d\mu}f(\mu) = \int_D G(z)^2 \, {p}(z) \,\left[ e^{-\mu z + \tfrac12\,\mu^2}\, (-Z + \mu) \, \right] \mathrm{d}z
+\frac{d}{d\mu}f(\mu) = \int_D G(z)^2  {p}(z) \left[ e^{-\mu z + \tfrac12 \mu^2} (-Z + \mu) \right] \mathrm{d}z
 $$
 
 $$
-\frac{d}{d\mu}f(\mu) = \mathbb{E}\left[ G(z)^2 \, e^{-\mu z + \tfrac12\,\mu^2}\, (-Z + \mu) \, \mathbb{1}_D \right]
+\frac{d}{d\mu}f(\mu) = \mathbb{E}\left[ G(z)^2 e^{-\mu z + \tfrac12 \mu^2} (-Z + \mu) \mathbb{1}_D \right]
 $$
 
 To find the $\mu$ that minimizes $f(\mu)$, we set the derivative equal to zero:
 
 $$
-\mathbb{E}\left[ G(z)^2 \, e^{-\mu z + \tfrac12\,\mu^2}\, (-Z + \mu) \, \mathbb{1}_D \right] = 0
+\mathbb{E}\left[ G(z)^2 e^{-\mu z + \tfrac12 \mu^2}\, (-Z + \mu) \mathbb{1}_D \right] = 0
 $$
 
 
@@ -188,7 +188,7 @@ $$
 Expressing it in terms of the definition of expected value,
 
 $$
-\mu = \frac{\sum_{i=1}^N\,Z_i\,G(Z_i)^2\,e^{-\mu\,Z_i + \tfrac12\mu^2}}{\sum_{i=1}^N\,G(Z_i)^2\,e^{-\mu\,Z_i + \tfrac12\mu^2}}
+\mu = \frac{\sum_{i=1}^N Z_i G(Z_i)^2 e^{-\mu Z_i + \tfrac12\mu^2}}{\sum_{i=1}^N G(Z_i)^2 e^{-\mu Z_i + \tfrac12\mu^2}}
 $$
 
 This becomes our fixed-point equation.
