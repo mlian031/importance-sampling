@@ -2,6 +2,9 @@
 
 The goal of this program is to optimize the drift parameter of the geometric brownian motion for out-the-money options. The model of the underlying asset movement accounts for both continuous diffusion and discrete jumps in asset prices; however, the jump related parameters are set to zero in this program.
 
+> [!NOTE]  
+> Branch `eqn-2.8-impl` implements the exact method outlined in Glasserman's 2001 paper: Asymptotically Optimal Importance Sampling and Stratification for Pricing Path-Dependent Options
+
 ## Usage
 
 ```sh
