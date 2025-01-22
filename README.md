@@ -126,13 +126,13 @@ There is a previous implementation using a fixed point method of iteratively sea
 We begin with (2.5) from Glasserman and Heidelberger (2000):
 
 $$
-\min_{\mu} \, \mathbb{E} \left[ G(Z)^2 e^{-\mu' Z + (1/2) \mu' \mu} \mathbb{1}_D \right]
+\min_{\mu} \mathbb{E} \left[ G(Z)^2 e^{-\mu' Z + (1/2) \mu' \mu} \mathbb{1}_D \right]
 $$
 
 Let 
 
 $$
-f(\mu) = \mathbb{E} \left[ G(Z)^2 e^{-\mu' Z + (1/2) \mu' \mu} \mathbb{1}_D \right] = \int_D G(z)^2 \, e^{-\mu z + \tfrac12\,\mu^2} \, p(z)\,\mathrm{d}z
+f(\mu) = \mathbb{E} \left[ G(Z)^2 e^{-\mu' Z + (1/2) \mu' \mu} \mathbb{1}_D \right] = \int_D G(z)^2 e^{-\mu z + \tfrac12 \mu^2} p(z) \mathrm{d}z
 $$
 
 Where $p(z)$ is the probability density function of Z and the indicator function returns 0 outside of $D$ so that integration only occurs on $D$. $D$ is the domain on which $Z$ (and hence $z$) takes values. 
@@ -140,7 +140,7 @@ Where $p(z)$ is the probability density function of Z and the indicator function
 We want $\frac{d}{d\mu} f(\mu)$.
 
 $$
-\frac{d}{d\mu} f(\mu) = \frac{d}{d\mu} \int_D G(z)^2 \, e^{-\mu z + \tfrac12\,\mu^2} \, p(z)\,\mathrm{d}z = \int_D G(z)^2 \, \frac{d}{d\mu}\left[e^{-\mu z + \tfrac12\,\mu^2}\right]\,\mathrm{d}z
+\frac{d}{d\mu} f(\mu) = \frac{d}{d\mu} \int_D G(z)^2 e^{-\mu z + \tfrac12 \mu^2} p(z) \mathrm{d}z = \int_D G(z)^2 \frac{d}{d\mu}\left[e^{-\mu z + \tfrac12 \mu^2}\right] \mathrm{d}z
 $$
 
 Now we differentiate:
@@ -163,7 +163,7 @@ $$
 To find the $\mu$ that minimizes $f(\mu)$, we set the derivative equal to zero:
 
 $$
-\mathbb{E}\left[ G(z)^2 e^{-\mu z + \tfrac12 \mu^2}\, (-Z + \mu) \mathbb{1}_D \right] = 0
+\mathbb{E}\left[ G(z)^2 e^{-\mu z + \tfrac12 \mu^2} (-Z + \mu) \mathbb{1}_D \right] = 0
 $$
 
 
