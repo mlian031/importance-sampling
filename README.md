@@ -25,13 +25,13 @@ $$
 \alpha = \mathbb{E}[h(X)] = \int h(x) f(x) \, dx,
 $$
 
-one may instead sample from a density $ g$ (with $ f(x) > 0 \implies g(x) > 0 $) and write
+one may instead sample from a density $g$ (with $f(x) > 0 \implies g(x) > 0$) and write
 
 $$
 \alpha = \int h(x) \frac{f(x)}{g(x)} g(x) \, dx = \tilde{\mathbb{E}}\left[h(X)\frac{f(X)}{g(X)}\right],
 $$
 
-where the likelihood ratio $ f(x)/g(x)$ corrects for the change of measure.
+where the likelihood ratio $f(x)/g(x)$ corrects for the change of measure.
 
 ### Asymptotically Optimal Change-of-Drift
 
@@ -74,18 +74,18 @@ The program conducts two parallel Monte Carlo experiments:
 1. **Standard Monte Carlo:**  
    Simulate $Z \sim \mathcal{N}(0,1)$ to compute the terminal asset price
 
-   $$
-   S_T = S_0 \exp\Bigl[(r-\frac{1}{2}\sigma^2)T + \sigma\sqrt{T}\, Z\Bigr]
-   $$
+$$
+S_T = S_0 \exp\Bigl[(r-\frac{1}{2}\sigma^2)T + \sigma\sqrt{T}\, Z\Bigr],
+$$
 
    then discount the call payoff $\max(S_T-K,0)$.
 
 2. **Importance Sampling:**  
    Shift the simulated standard normal variates by $\mu_{\text{opt}}$ (i.e., use $Z+\mu_{\text{opt}}$), and adjust the payoff with the likelihood ratio
 
-   $$
-   \exp\Bigl(-\mu_{\text{opt}} Z - \frac{1}{2}\mu_{\text{opt}}^2\Bigr)
-   $$
+$$
+\exp\Bigl(-\mu_{\text{opt}} Z - \frac{1}{2}\mu_{\text{opt}}^2\Bigr)
+$$
    
    This change concentrates simulation effort on the region where the option payoff is significant.
 
