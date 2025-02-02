@@ -2,9 +2,6 @@
 
 The objective of this program is to efficiently estimate the price of a European call option via Monte Carlo simulation while reducing estimator variance through an asymptotically optimal importance sampling technique. This approach leverages a change-of-drift strategy inspired by Glasserman, Heidelberger, and Shahabuddin (1999) to direct simulation effort toward the most “important” region of the state space.
 
-> [!NOTE]  
-> Branch `eqn-2.8-impl` implements the exact method outlined in Glasserman's 2001 paper: Asymptotically Optimal Importance Sampling and Stratification for Pricing Path-Dependent Options
-
 ## Usage
 
 Clone the repository and run the program as follows:
@@ -44,7 +41,7 @@ $$
 S_T = S_0 \exp\left[\left(r-\frac{1}{2}\sigma^2\right)T + \sigma\sqrt{T}\, Z\right],
 $$
 
-with $ Z \sim \mathcal{N}(0,1)$. Define
+with $Z \sim \mathcal{N}(0,1)$. Define
 
 $$
 A = S_0 \exp\left[\left(r-\frac{1}{2}\sigma^2\right)T\right].
@@ -68,7 +65,7 @@ which is equivalent to a reformulation of Equation (2.8). Maximizing $f(z)$ dete
 
 ### Use of `minimize_scalar`
 
-The optimization problem for finding the optimal drift shift is one-dimensional. Instead of directly maximizing $f(z)$, we minimize the negative, $-f(z)$, over the interval $z_{\min}, z_{\min}+10]$. This interval is chosen to capture the region where the optimum is likely to lie. We employ SciPy’s `minimize_scalar` routine with a bounded method because we are optimizing for a one-dimensional problem.
+The optimization problem for finding the optimal drift shift is one-dimensional. Instead of directly maximizing $f(z)$, we minimize the negative, $-f(z)$, over the interval $[z_{\min}, z_{\min}+10]$. This interval is chosen to capture the region where the optimum is likely to lie. We employ SciPy’s `minimize_scalar` routine with a bounded method because we are optimizing for a one-dimensional problem.
 
 ### Simulation Methodology
 
@@ -76,12 +73,16 @@ The program conducts two parallel Monte Carlo experiments:
 
 1. **Standard Monte Carlo:**  
    Simulate $Z \sim \mathcal{N}(0,1)$ to compute the terminal asset price
-   $$ S_T = S_0 \exp\Bigl[(r-\frac{1}{2}\sigma^2)T + \sigma\sqrt{T}\, Z\Bigr], $$
-   then discount the call payoff $ \max(S_T-K,0)$.
+   $$
+   S_T = S_0 \exp\Bigl[(r-\frac{1}{2}\sigma^2)T + \sigma\sqrt{T}\, Z\Bigr]
+   $$,
+   then discount the call payoff $\max(S_T-K,0)$.
 
 2. **Importance Sampling:**  
-   Shift the simulated standard normal variates by $ \mu_{\text{opt}} $ (i.e., use $ Z+\mu_{\text{opt}} $), and adjust the payoff with the likelihood ratio
-   $$ \exp\Bigl(-\mu_{\text{opt}} Z - \frac{1}{2}\mu_{\text{opt}}^2\Bigr). $$
+   Shift the simulated standard normal variates by $\mu_{\text{opt}}$ (i.e., use $Z+\mu_{\text{opt}}$), and adjust the payoff with the likelihood ratio
+   $$
+   \exp\Bigl(-\mu_{\text{opt}} Z - \frac{1}{2}\mu_{\text{opt}}^2\Bigr)
+   $$
    This change concentrates simulation effort on the region where the option payoff is significant.
 
 For each method, multiple repetitions are performed for various numbers of simulation paths. The results are then compared in terms of the estimated price, 95% confidence intervals, and variance reduction achieved by the importance sampling technique.
@@ -90,11 +91,11 @@ For each method, multiple repetitions are performed for various numbers of simul
 
 For instance, using the parameters:
 
-- $ S_0 = 100 $
-- $ K = 145 $
-- $ r = 0.05 $
-- $ \sigma = 0.2 $
-- $ T = 1.0 $
+- $S_0 = 100$
+- $K = 145$
+- $r = 0.05$
+- $\sigma = 0.2$
+- $T = 1.0$
 
 a typical output is:
 
