@@ -59,7 +59,7 @@ $$
 f(z) = \ln\Bigl(Ae^{\sigma\sqrt{T}\, z} - K\Bigr) - \frac{1}{2}z^2, \quad z \ge z_{\min},
 $$
 
-which is equivalent to a reformulation of Equation (2.8). Maximizing $f(z)$ determines the optimal drift shift $ \mu_{\text{opt}}$ for the importance sampling distribution.
+which is equivalent to a reformulation of Equation (2.8). Maximizing $f(z)$ determines the optimal drift shift $\mu_{\text{opt}}$ for the importance sampling distribution.
 
 ## Implementation Details
 
@@ -73,16 +73,20 @@ The program conducts two parallel Monte Carlo experiments:
 
 1. **Standard Monte Carlo:**  
    Simulate $Z \sim \mathcal{N}(0,1)$ to compute the terminal asset price
+
    $$
    S_T = S_0 \exp\Bigl[(r-\frac{1}{2}\sigma^2)T + \sigma\sqrt{T}\, Z\Bigr]
-   $$,
+   $$
+
    then discount the call payoff $\max(S_T-K,0)$.
 
 2. **Importance Sampling:**  
    Shift the simulated standard normal variates by $\mu_{\text{opt}}$ (i.e., use $Z+\mu_{\text{opt}}$), and adjust the payoff with the likelihood ratio
+
    $$
    \exp\Bigl(-\mu_{\text{opt}} Z - \frac{1}{2}\mu_{\text{opt}}^2\Bigr)
    $$
+   
    This change concentrates simulation effort on the region where the option payoff is significant.
 
 For each method, multiple repetitions are performed for various numbers of simulation paths. The results are then compared in terms of the estimated price, 95% confidence intervals, and variance reduction achieved by the importance sampling technique.
