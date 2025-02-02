@@ -1,170 +1,219 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib as mpl
+from matplotlib.gridspec import GridSpec
+from matplotlib.ticker import ScalarFormatter, AutoMinorLocator
+from scipy.optimize import minimize_scalar
 from scipy.stats import norm
-from scipy.optimize import differential_evolution
 
-def european_call_payoff(S0, K, r, sigma, T, Z):
-    """
-    Given Z ~ N(0,1), return the European call payoff max(S_T - K,0).
-    """
-    ST = S0 * np.exp((r - 0.5 * sigma**2)*T + sigma * np.sqrt(T)*Z)
-    return np.maximum(ST - K, 0)
+# -----------------------------
+# Option and model parameters
+# -----------------------------
+S0    = 100.0   # initial stock price
+K     = 145.0   # strike price
+r     = 0.05    # risk-free rate
+sigma = 0.2     # volatility
+T     = 1.0     # time to maturity (in years)
 
-class DriftOptimizer:
-    def __init__(self, S0, K, r, sigma, T, M):
-        self.S0 = S0
-        self.K = K
-        self.r = r
-        self.sigma = sigma
-        self.T = T
-        self.M = M
-        self.bounds = [(-1e3, 1e3)]  # Bounds for the optimization
+sqrtT    = np.sqrt(T)
+discount = np.exp(-r*T)
+# Under risk-neutral dynamics the terminal stock price is:
+#   S_T = S0 * exp((r - 0.5*sigma^2)T + sigma*sqrtT * Z)
+# so let
+A = S0 * np.exp((r - 0.5*sigma**2)*T)
+
+# -----------------------------
+# Black-Scholes Price
+# -----------------------------
+def black_scholes_call(S0, K, r, sigma, T):
+    d1 = (np.log(S0/K) + (r + 0.5*sigma**2)*T) / (sigma*np.sqrt(T))
+    d2 = d1 - sigma*np.sqrt(T)
+    call = S0 * norm.cdf(d1) - K * np.exp(-r*T) * norm.cdf(d2)
+    return call
+
+bs_price = black_scholes_call(S0, K, r, sigma, T)
+print("Black-Scholes Call Price =", bs_price)
+
+# -----------------------------------------------------------
+# Find the optimal drift shift (mu) using 2.8
+# -----------------------------------------------------------
+# For the call option the payoff is positive only when S_T > K.
+# Writing S_T = A * exp(sigma*sqrtT*z) we must have:
+#   A*exp(sigma*sqrtT*z) > K   =>   z > z_min, where:
+z_min = np.log(K/A) / (sigma*sqrtT)
+
+# Define the function f(z) = ln(A*exp(sigma*sqrtT*z) - K) - z^2/2.
+# (Note: f(z) is only meaningful for z >= z_min. We return -inf below z_min.)
+def f(z):
+    if z < z_min:
+        return -np.inf
+    return np.log(A * np.exp(sigma*sqrtT*z) - K) - 0.5 * z**2
+
+# To “maximize” f(z), we minimize -f(z) over [z_min, z_min+10] (an interval wide enough to capture the maximum)
+res = minimize_scalar(lambda z: -f(z), bounds=(z_min, z_min+10), method='bounded')
+mu_opt = res.x
+print("Optimal drift shift (mu) for importance sampling =", mu_opt)
+
+# ----------------------------------------------------------------------------------
+# Set up simulation settings
+# ----------------------------------------------------------------------------------
+path_counts = np.logspace(3, 6, num=20, base=10, dtype=int)
+num_rep    = 100
+
+mc_estimates   = []
+mc_std_errors  = []
+is_estimates   = []
+is_std_errors  = []
+mc_variances   = []
+is_variances   = []
+
+# For each simulation size, repeat num_rep times and record the average price estimates.
+for N in path_counts:
+    mc_vals = np.zeros(num_rep)
+    is_vals = np.zeros(num_rep)
     
-    def F(self, z):
-        # Calculate the terminal stock price ST
-        ST = self.S0 * np.exp(self.r * self.T - 0.5 * self.sigma**2 * self.T + self.sigma * np.sqrt(self.T) * z)
-        if ST > self.K:
-            return np.log(ST - self.K)
-        else:
-            return -1e6  # Large negative value for invalid domain
+    for i in range(num_rep):
+        # ------------------------
+        # Standard Monte Carlo
+        # ------------------------
+        # Sample Z ~ N(0,1) (shape: N)
+        Z = np.random.randn(N)
+        # Terminal stock price under risk–neutral measure:
+        S_T = S0 * np.exp((r - 0.5*sigma**2)*T + sigma*sqrtT*Z)
+        payoff = discount * np.maximum(S_T - K, 0)
+        mc_vals[i] = np.mean(payoff)
+        
+        # ------------------------
+        # Importance Sampling via Change of Drift
+        # ------------------------
+        # Instead of simulating Z, we simulate Z and use the shift mu_opt so that effectively we use Z+mu_opt.
+        # (Recall: if Y ~ N(mu,1) then Y can be written as Z+mu with Z ~ N(0,1).)
+        # The likelihood ratio is then: exp(-mu_opt*Z - 0.5*mu_opt**2)
+        Z = np.random.randn(N)
+        S_T_IS = S0 * np.exp((r - 0.5*sigma**2)*T + sigma*sqrtT*(Z + mu_opt))
+        likelihood = np.exp(-mu_opt*Z - 0.5*mu_opt**2)
+        payoff_IS = discount * np.maximum(S_T_IS - K, 0) * likelihood
+        is_vals[i] = np.mean(payoff_IS)
     
-    def G(self, z):
-        # Objective function to maximize
-        return -(self.F(z) - 0.5 * z**2)  # Negative to maximize
+    # Compute average and standard error (over the 100 repetitions)
+    mc_mean = np.mean(mc_vals)
+    mc_std  = np.std(mc_vals, ddof=1)
+    mc_se   = mc_std / np.sqrt(num_rep)
     
-    def optimize(self):
-        # Optimize the objective function G using differential evolution
-        result = differential_evolution(self.G, bounds=self.bounds)
-        if result.success:
-            self.z_opt = result.x[0]
-            self.max_value = -result.fun  # Undo the negative sign
-            return self.z_opt, self.max_value
-        else:
-            return None, None
+    is_mean = np.mean(is_vals)
+    is_std  = np.std(is_vals, ddof=1)
+    is_se   = is_std / np.sqrt(num_rep)
     
-    def plot_objective(self):
-        # Plot the objective function G(z)
-        z_vals = np.linspace(self.bounds[0][0], self.bounds[0][1], 100)  # Adjust range if needed
-        G_vals = [self.G(z) for z in z_vals]
-        plt.plot(z_vals, G_vals)
-        plt.xlabel("z")
-        plt.ylabel("G(z)")
-        plt.title("Objective Function G(z)")
-        plt.show()
-
-def black_scholes_call_price(S0, K, r, sigma, T):
-    """
-    Compute the analytical price of a European call option using the Black-Scholes formula.
+    mc_estimates.append(mc_mean)
+    mc_std_errors.append(mc_se)
+    is_estimates.append(is_mean)
+    is_std_errors.append(is_se)
     
-    Parameters:
-    -----------
-    S0 : float
-        Initial stock price.
-    K : float
-        Strike price.
-    r : float
-        Risk-free interest rate.
-    sigma : float
-        Volatility of the underlying stock.
-    T : float
-        Time to maturity.
+    mc_variances.append(mc_std**2)
+    is_variances.append(is_std**2)
     
-    Returns:
-    --------
-    float
-        The Black-Scholes price of the call option.
-    """
-    d1 = (np.log(S0 / K) + (r + 0.5 * sigma**2) * T) / (sigma * np.sqrt(T))
-    d2 = d1 - sigma * np.sqrt(T)
-    return S0 * norm.cdf(d1) - K * np.exp(-r * T) * norm.cdf(d2)
+    print(f"\nNumber of paths: {N}")
+    print(f"  Standard MC Price: {mc_mean:.4f} ± {1.96*mc_se:.4f} (95% CI), Variance: {mc_std**2:.8f}")
+    print(f"  Importance Sampling Price: {is_mean:.4f} ± {1.96*is_se:.4f} (95% CI), Variance: {is_std**2:.8f}")
+    if is_std**2 > 0:
+        vr_ratio = mc_std**2 / is_std**2
+        print(f"  Variance Reduction Ratio (MC/IS): {vr_ratio:.2f}")
+    else:
+        print("  Variance Reduction Ratio: Infinity (IS variance is zero)")
 
-# Parameters for the European call
-S0 = 100.0
-K = 120.0
-r = 0.05
-sigma = 0.2
-T = 1.0
+# -------------------------------------------------------
+# Plotting: Option price estimates vs. number of paths
+# -------------------------------------------------------
+# We use a log-scale on the x-axis. The error bars will be 95% confidence intervals.
 
-M = 100  # Number of Monte Carlo simulations
-N_values = np.logspace(4, 6, 90).astype(int)  # Different path counts for simulations
+plt.style.use('classic')
+mpl.rcParams.update({
+    'font.family': 'serif',
+    'font.serif': ['Times New Roman'], 
+    'text.usetex': True,
+    'axes.labelsize': 10,
+    'axes.titlesize': 11,
+    'legend.fontsize': 9,
+    'xtick.labelsize': 9,
+    'ytick.labelsize': 9,
+    'lines.linewidth': 1.2,
+    'lines.markersize': 5,
+    'figure.figsize': (8, 8),
+    'figure.dpi': 300,
+    'text.latex.preamble': r'\usepackage{amsmath,amssymb}'
+})
 
-# Arrays to store price estimates and standard errors
-mc_price_estimates = np.zeros(len(N_values))
-is_price_estimates = np.zeros(len(N_values))
-mc_stderrs = np.zeros(len(N_values))
-is_stderrs = np.zeros(len(N_values))
+# Convert results to numpy arrays for plotting
+path_counts_arr = np.array(path_counts)
+mc_est_arr      = np.array(mc_estimates)
+mc_err_arr      = 1.96 * np.array(mc_std_errors)  # 95% CI
+is_est_arr      = np.array(is_estimates)
+is_err_arr      = 1.96 * np.array(is_std_errors)
 
-optimal_mu = "Not found"
+fig = plt.figure(constrained_layout=True)
+gs = GridSpec(2, 1, height_ratios=[1, 1], figure=fig)
 
-# Optimize the drift parameter
-drift_optimizer = DriftOptimizer(S0, K, r, sigma, T, M)
-optimal_mu, max_value = drift_optimizer.optimize()
+ax_params = fig.add_subplot(gs[0])
+ax_params.axis('off')
 
-# Monte Carlo and Importance Sampling simulations
-for i, _ in enumerate(N_values):
-    current_estimate_price_standard = []
-    current_estimate_price_IS = []
-    current_estimate_stderrs_standard = []
-    current_estimate_stderrs_IS = []
+params_text = (
+    "Model Parameters:\n"
+    f"Initial Stock Price ($S_0$): {S0:.2f}\n"
+    f"Strike Price (K): {K:.2f}\n"
+    f"Time to Maturity (T): {T:.1f} years\n"
+    f"Risk-free Rate (r): {r*100:.1f}%\n"
+    f"Volatility ($\\sigma$): {sigma*100:.1f}%\n"
+    f"Repetitions: {num_rep}"
+)
 
-    for _ in range(M):
-        # Standard Monte Carlo simulation
-        Z = np.random.randn(N_values[i])
-        G_vals = european_call_payoff(S0, K, r, sigma, T, Z)
-        discount_factor = np.exp(-r*T)
-        price_standard = discount_factor * np.mean(G_vals)
-        stderr_standard = discount_factor * np.std(G_vals, ddof=1)/np.sqrt(N_values[i])
-        current_estimate_price_standard.append(price_standard)
-        current_estimate_stderrs_standard.append(stderr_standard)
+ax_params.text(0.5, 0.5, params_text, ha='center', va='center',
+               transform=ax_params.transAxes,
+               bbox=dict(facecolor='white', edgecolor='black', alpha=0.8, boxstyle='round,pad=0.5'))
 
-        # Importance Sampling simulation
-        Z_prime = np.random.randn(N_values[i])
-        Z_shifted = Z_prime + optimal_mu
-        G_shifted = european_call_payoff(S0, K, r, sigma, T, Z_shifted)
-        LR = np.exp(-optimal_mu*Z_prime - 0.5*optimal_mu**2)
-        IS_estimates = G_shifted * LR
-        price_IS = discount_factor * np.mean(IS_estimates)
-        stderr_IS = discount_factor * np.std(IS_estimates, ddof=1)/np.sqrt(N_values[i])
-        current_estimate_price_IS.append(price_IS)
-        current_estimate_stderrs_IS.append(stderr_IS)
+ax = fig.add_subplot(gs[1])
+colors = {
+    'is': '#000080',   # Navy blue for importance sampling
+    'std': '#8B0000',  # Dark red for standard MC
+    'bs': '#006400'    # Dark green for Black-Scholes reference
+}
 
-    # Store the mean estimates and standard errors
-    mc_price_estimates[i] = np.mean(current_estimate_price_standard)
-    mc_stderrs[i] = np.mean(current_estimate_stderrs_standard)
-    is_price_estimates[i] = np.mean(current_estimate_price_IS)
-    is_stderrs[i] = np.mean(current_estimate_stderrs_IS)
+# Plot Importance Sampling results
+ax.errorbar(path_counts_arr, is_est_arr, yerr=is_err_arr,
+            fmt='o-', capsize=3, capthick=1,
+            label='Importance Sampling',
+            color=colors['is'],
+            markerfacecolor='white',
+            markeredgewidth=1.2,
+            ecolor=colors['is'],
+            alpha=0.8)
 
-# Calculate the Black-Scholes price
-bs_price = black_scholes_call_price(S0, K, r, sigma, T)
+# Plot Standard Monte Carlo results
+ax.errorbar(path_counts_arr, mc_est_arr, yerr=mc_err_arr,
+            fmt='s--', capsize=3, capthick=1,
+            label='Standard Monte Carlo',
+            color=colors['std'],
+            markerfacecolor='white',
+            markeredgewidth=1.2,
+            ecolor=colors['std'],
+            alpha=0.8)
 
-# Print data gathered
-print("Path Count | MC Estimate | MC StdErr | IS Estimate | IS StdErr")
-for i, N in enumerate(N_values):
-    print(f"{N:9d} | {mc_price_estimates[i]:11.6f} | {mc_stderrs[i]:10.6f} | {is_price_estimates[i]:11.6f} | {is_stderrs[i]:10.6f}")
+ax.axhline(y=bs_price, color=colors['bs'], linestyle='-.',
+           label=f'Black-Scholes Price = \\${bs_price:.2f}')
 
-# Variance reduction calculation
-variance_reduction_multiple = (np.mean(mc_stderrs) / np.mean(is_stderrs))**2
-print(f"\nVariance Reduction Multiple: {variance_reduction_multiple:.2f}")
+ax.set_xscale('log')
+ax.set_xlim(path_counts_arr[0] * 0.8, path_counts_arr[-1] * 1.2)
+ax.xaxis.set_major_formatter(ScalarFormatter())
 
-# Plot results
-plt.figure(figsize=(10, 6))
+ax.grid(True, which='major', linestyle='-', alpha=0.25)
+ax.grid(True, which='minor', linestyle=':', alpha=0.15)
 
-# Top plot: Price estimates with CI
-plt.errorbar(N_values, mc_price_estimates, yerr=1.96 * mc_stderrs, label='Monte Carlo', fmt='o', capsize=5)
-plt.errorbar(N_values, is_price_estimates, yerr=1.96 * is_stderrs, label='Importance Sampling', fmt='o', capsize=5)
-plt.axhline(bs_price, color='red', linestyle='--', label='Black-Scholes Analytical Price')
-plt.xscale("log")
-plt.xlabel('Number of Paths (N)')
-plt.ylabel('Price Estimates')
+ax.set_xlabel(r'Number of Simulated Paths ($N$)')
+ax.set_ylabel(r'Option Price ($\mathcal{C}$)')
+ax.set_title(r'European Call Option: Monte Carlo Price Convergence Analysis', pad=10)
 
-# Include simulation parameters in the plot title
-title = f"Monte Carlo vs. Importance Sampling with 95% CI\n"
-title += f"S0={S0}, K={K}, r={r}, sigma={sigma}, T={T}, M={M}"
-plt.title(title)
+leg = ax.legend(frameon=True, fancybox=False, edgecolor='black',
+                bbox_to_anchor=(0.98, 0.98), loc='upper right', borderaxespad=0)
+leg.get_frame().set_linewidth(0.8)
 
-plt.legend()
-plt.grid(True)
-
-plt.tight_layout()
-plt.savefig("monte_carlo_vs_importance_sampling.png", dpi=600)
-plt.show()
+plt.savefig('option_pricing_mc.pdf', bbox_inches='tight', dpi=300)
+plt.savefig('option_pricing_mc.png', bbox_inches='tight', dpi=300)
