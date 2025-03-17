@@ -31,24 +31,22 @@ $$
 
 where the likelihood ratio $f(x)/g(x)$ corrects for the change of measure.
 
-
 ## Implementation Details
 
+[Fixing latex rendering issues]
+
+```
 ### The GBM Model
 
 Under the real-world measure $P$, the stock price process follows a Geometric Brownian Motion:
 
-$$
-dS_t = \mu S_t dt + \sigma S_t dW_t, \quad S_0 > 0
-$$
+$$dS_t = \mu S_t dt + \sigma S_t dW_t, \quad S_0 > 0$$
 
 where $W_t$ is a standard Brownian motion under $P$, $\mu$ is the drift, and $\sigma$ is the volatility.
 
 The closed-form solution is:
 
-$$
-S_T = S_0 \exp\left\{ \left(\mu - \frac{1}{2}\sigma^2\right)T + \sigma W_T\right\}
-$$
+$$S_T = S_0 \exp\left\{\left(\mu - \frac{1}{2}\sigma^2\right)T + \sigma W_T\right\}$$
 
 ### Logarithmic Transformation
 
@@ -66,7 +64,7 @@ We introduce an alternative measure $Q$ under which:
 
 $$dS_t = \tilde{\mu} S_t dt + \tilde{\sigma} S_t d\widetilde{W}_t$$
 
-where $\tilde{W}_t$ is a Brownian motion under $Q$.
+where $\widetilde{W}_t$ is a Brownian motion under $Q$.
 
 Under measure $Q$, $X \sim \mathcal{N}(\tilde{m}, \tilde{v})$ where:
 - $\tilde{m} = \ln S_0 + \left(\tilde{\mu} - \frac{1}{2}\tilde{\sigma}^2\right)T$
@@ -124,9 +122,7 @@ $$L(x) = \frac{dP}{dQ}(x) = \sqrt{\frac{\tilde{v}}{v}} \exp\left\{-\frac{(x-m)^2
 
 For estimating $\alpha = \mathbb{E}_P[g(S_T)1_{\{S_T \in E\}}]$, the importance sampling estimator is:
 
-$$
-\hat{\alpha} = g(e^X)1_{\{e^X \in E\}}L(X)
-$$
+$$\hat{\alpha} = g(e^X)1_{\{e^X \in E\}}L(X)$$
 
 where $X$ is simulated from $\mathcal{N}(\tilde{m}, \tilde{v})$ under measure $Q$, and $ L(X) = \sqrt{\frac{\tilde{v}}{v}}\,\exp\!\Bigl\{-\frac{(X-m)^2}{2v} + \frac{(X-\tilde{m})^2}{2\tilde{v}}\Bigr\} $.
 
@@ -137,6 +133,7 @@ By the change-of-measure property, this estimator is unbiased for $\alpha$.
 The optimization objective is to minimize:
 
 $$F(\tilde{\mu}, \tilde{\sigma}) = \mathbb{E}_Q[g(e^X)^2 1_{\{e^X \in E\}}L(X)^2]$$
+```
 
 ## Results
 
