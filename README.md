@@ -1,16 +1,14 @@
 # Importance Sampling for European Call Option Pricing
 
-The objective of this program is to efficiently estimate the price of a European call option via Monte Carlo simulation while reducing estimator variance through an asymptotically optimal importance sampling technique. This approach leverages a change-of-drift strategy inspired by Glasserman, Heidelberger, and Shahabuddin (1999) to direct simulation effort toward the most “important” region of the state space.
+This repository contains an implementation of an importance sampling (IS) technique for pricing options under the Geometric Brownian Motion (GBM) framework. The method extends the Glasserman-Heidelberger-Shahabuddin (hereafter GHS) approach by optimizing both drift and volatility parameters, resulting in significant variance reduction and improved computational efficiency for rare event simulations in option pricing.
 
 ## Usage
 
 Clone the repository and run the program as follows:
 
 ```sh
-$ git clone git@github.com:mlian031/importance-sampling.git
-$ cd importance-sampling
-$ git checkout reimpl-eq-2.8
-$ python -m venv venv && source venv/bin/activate
+$ python -m venv venv
+$ source venv/bin/activate
 $ pip install -r requirements.txt
 $ python main.py
 ```
@@ -33,92 +31,134 @@ $$
 
 where the likelihood ratio $f(x)/g(x)$ corrects for the change of measure.
 
-### Asymptotically Optimal Change-of-Drift
-
-Under the risk-neutral measure, the terminal asset price in the geometric Brownian motion model is
-
-$$
-S_T = S_0 \exp\left[\left(r-\frac{1}{2}\sigma^2\right)T + \sigma\sqrt{T}\, Z\right],
-$$
-
-with $Z \sim \mathcal{N}(0,1)$. Define
-
-$$
-A = S_0 \exp\left[\left(r-\frac{1}{2}\sigma^2\right)T\right].
-$$
-
-For a European call option with strike \( K \), the payoff is nonzero only when
-
-$$
-S_T > K \quad \Longleftrightarrow \quad Z > z_{\min} = \frac{\ln(K/A)}{\sigma\sqrt{T}}.
-$$
-
-Following Glasserman et al. (1999), one seeks a drift adjustment that maximizes the function
-
-$$
-f(z) = \ln\Bigl(Ae^{\sigma\sqrt{T}\, z} - K\Bigr) - \frac{1}{2}z^2, \quad z \ge z_{\min},
-$$
-
-which is equivalent to a reformulation of Equation (2.8). Maximizing $f(z)$ determines the optimal drift shift $\mu_{\text{opt}}$ for the importance sampling distribution.
 
 ## Implementation Details
 
-### Use of `minimize_scalar`
+### The GBM Model
 
-The optimization problem for finding the optimal drift shift is one-dimensional. Instead of directly maximizing $f(z)$, we minimize the negative, $-f(z)$, over the interval $[z_{\min}, z_{\min}+10]$. This interval is chosen to capture the region where the optimum is likely to lie. We employ SciPy’s `minimize_scalar` routine with a bounded method because we are optimizing for a one-dimensional problem.
+Under the real-world measure $P$, the stock price process follows a Geometric Brownian Motion:
 
-### Simulation Methodology
+$$dS_t = \mu S_t dt + \sigma S_t dW_t, \quad S_0 > 0$$
 
-The program conducts two parallel Monte Carlo experiments:
+where $W_t$ is a standard Brownian motion under $P$, $\mu$ is the drift, and $\sigma$ is the volatility.
 
-1. **Standard Monte Carlo:**  
-   Simulate $Z \sim \mathcal{N}(0,1)$ to compute the terminal asset price
+The closed-form solution is:
+
+$$S_T = S_0 \exp\left\{\left(\mu - \frac{1}{2}\sigma^2\right)T + \sigma W_T\right\}$$
+
+### Logarithmic Transformation
+
+Defining $X = \ln S_T$, we have:
+
+$$X = \ln S_0 + \left(\mu - \frac{1}{2}\sigma^2\right)T + \sigma W_T$$
+
+Under measure $P$, $X \sim \mathcal{N}(m, v)$ where:
+- $m = \ln S_0 + \left(\mu - \frac{1}{2}\sigma^2\right)T$
+- $v = \sigma^2 T$
+
+### Importance Sampling Measure
+
+We introduce an alternative measure $Q$ under which:
+
+$$dS_t = \tilde{\mu} S_t dt + \tilde{\sigma} S_t d\widetilde{W}_t$$
+
+where $\widetilde{W}_t$ is a Brownian motion under $Q$.
+
+Under measure $Q$, $X \sim \mathcal{N}(\tilde{m}, \tilde{v})$ where:
+- $\tilde{m} = \ln S_0 + \left(\tilde{\mu} - \frac{1}{2}\tilde{\sigma}^2\right)T$
+- $\tilde{v} = \tilde{\sigma}^2 T$
+
+### Likelihood Ratio
+
+When we change measure from P to Q, the importance sampling estimator must be weighted by the likelihood ratio $L(x) = \frac{dP}{dQ}(x)$.
+
+The probability density function (pdf) of a normal distribution $N(\mu_0,\nu)$ is given by
 
 $$
-S_T = S_0 \exp\Bigl[(r-\frac{1}{2}\sigma^2)T + \sigma\sqrt{T}\, Z\Bigr],
+f(x) = \frac{1}{\sqrt{2\pi\,\nu}}\exp\!\Bigl\{-\frac{(x-\mu_0)^2}{2\nu}\Bigr\}.
 $$
 
-   then discount the call payoff $\max(S_T-K,0)$.
-
-2. **Importance Sampling:**  
-   Shift the simulated standard normal variates by $\mu_{\text{opt}}$ (i.e., use $Z+\mu_{\text{opt}}$), and adjust the payoff with the likelihood ratio
+Under P:
 
 $$
-\exp\Bigl(-\mu_{\text{opt}} Z - \frac{1}{2}\mu_{\text{opt}}^2\Bigr)
+f_P(x) = \frac{1}{\sqrt{2\pi\,v}}\exp\!\Bigl\{-\frac{(x-m)^2}{2v}\Bigr\}.
 $$
-   
-   This change concentrates simulation effort on the region where the option payoff is significant.
 
-For each method, multiple repetitions are performed for various numbers of simulation paths. The results are then compared in terms of the estimated price, 95% confidence intervals, and variance reduction achieved by the importance sampling technique.
+Under Q:
+$$
+f_Q(x) = \frac{1}{\sqrt{2\pi\,\tilde{v}}}\exp\!\Bigl\{-\frac{(x-\tilde{m})^2}{2\tilde{v}}\Bigr\}.
+$$
 
-## Sample Results
+By definition,
 
-For instance, using the parameters:
+$$
+L(x) = \frac{f_P(x)}{f_Q(x)}
+$$
 
-- $S_0 = 100$
-- $K = 145$
-- $r = 0.05$
-- $\sigma = 0.2$
-- $T = 1.0$
+Thus,
 
-a typical output is:
+$$
+L(x)
+=\; \frac{1}{\sqrt{2\pi\,v}} \exp\!\Bigl\{-\frac{(x-m)^2}{2v}\Bigr\} \Big/ \frac{1}{\sqrt{2\pi\,\tilde{v}}} \exp\!\Bigl\{-\frac{(x-\tilde{m})^2}{2\tilde{v}}\Bigr\}
+$$
 
-```
-Number of paths: 10000
-Number of paths: 695192
-  Standard MC Price: 0.5344 ± 0.0010 (95% CI), Variance: 0.00002428
-  Importance Sampling Price: 0.5340 ± 0.0001 (95% CI), Variance: 0.00000033
-  Variance Reduction Ratio (MC/IS): 74.53
+Simplify this expression:
 
-Number of paths: 1000000
-  Standard MC Price: 0.5340 ± 0.0007 (95% CI), Variance: 0.00001189
-  Importance Sampling Price: 0.5340 ± 0.0001 (95% CI), Variance: 0.00000024
-  Variance Reduction Ratio (MC/IS): 49.81
-```
+$$
+L(x) = \sqrt{\frac{\tilde{v}}{v}} \;\exp\!\Bigl\{-\frac{(x-m)^2}{2v} + \frac{(x-\tilde{m})^2}{2\tilde{v}}\Bigr\}
+$$
 
-![](option_pricing_mc.png)
+We used the definition of the normal density and then divided the two expressions term by term.
 
-This clearly demonstrates a significant reduction in variance using the importance sampling approach.
+The likelihood ratio (Radon-Nikodym derivative) between measures $P$ and $Q$ is:
+
+$$L(x) = \frac{dP}{dQ}(x) = \sqrt{\frac{\tilde{v}}{v}} \exp\left\{-\frac{(x-m)^2}{2v} + \frac{(x-\tilde{m})^2}{2\tilde{v}}\right\}$$
+
+
+
+### Importance Sampling Estimator
+
+For estimating $\alpha = \mathbb{E}_P[g(S_T)1_{\{S_T \in E\}}]$, the importance sampling estimator is:
+
+$$\hat{\alpha} = g(e^X)1_{\{e^X \in E\}}L(X)$$
+
+where $X$ is simulated from $\mathcal{N}(\tilde{m}, \tilde{v})$ under measure $Q$, and $ L(X) = \sqrt{\frac{\tilde{v}}{v}}\,\exp\!\Bigl\{-\frac{(X-m)^2}{2v} + \frac{(X-\tilde{m})^2}{2\tilde{v}}\Bigr\} $.
+
+By the change-of-measure property, this estimator is unbiased for $\alpha$.
+
+### Variance Optimization
+
+The optimization objective is to minimize:
+
+$$F(\tilde{\mu}, \tilde{\sigma}) = \mathbb{E}_Q[g(e^X)^2 1_{\{e^X \in E\}}L(X)^2]$$
+
+## Results
+
+The following visualizations demonstrate the effectiveness of this approach:
+
+### Density Comparison
+
+![Density Comparison](figures/density_comparison.png)
+
+*Comparison of probability densities under the real-world measure P, risk-neutral measure, and the optimized importance sampling measure Q. The importance sampling measure shifts probability mass toward the region where the option is in-the-money.*
+
+### Payoff Density
+
+![Density with Shaded Payoff](figures/density_comparison_shaded.png)
+
+*Visualization of probability densities under measures P and Q, with shaded regions indicating where the option has positive payoff (S_T > K). The importance sampling measure Q shifts probability mass toward the in-the-money region, leading to more efficient sampling of payoff-relevant paths.*
+
+### Estimator Comparison
+
+![Estimator Comparison](figures/estimator_comparison.png)
+
+*Box plot comparing the variance of standard Monte Carlo to our importance sampling approach across multiple experiments. The optimized importance sampling estimator shows significantly reduced variance.*
+
+### Convergence Analysis
+
+![Convergence Analysis](figures/convergence_analysis.png)
+
+*Convergence analysis showing how the standard error decreases with increasing sample size for both standard Monte Carlo and importance sampling. The importance sampling approach achieves the same precision with orders of magnitude fewer samples.*
 
 ## Citations
 
