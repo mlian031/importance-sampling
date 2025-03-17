@@ -162,5 +162,5 @@ The following visualizations demonstrate the effectiveness of this approach:
 
 ## Citations
 
-- Glasserman, P., Heidelberger, P., & Shahabuddin, P. (1999). Asymptotically Optimal Importance Sampling and Stratification for Pricing Path-Dependent Options. *Mathematical Finance, 9*(2), 117–152. [https://doi.org/10.1111/1467-9965.00065](https://doi.org/10.1111/1467-9965.00065)
+- Glasserman, P., P. Heidelberger, P. Shahabuddin (1999). Asymptotically Optimal Importance Sampling and Stratification for Pricing Path-Dependent Options. *Mathematical Finance, 9*(2), 117–152. [https://doi.org/10.1111/1467-9965.00065](https://doi.org/10.1111/1467-9965.00065)
 - Glasserman, P. (2003). *Monte Carlo Methods in Financial Engineering*. New York, NY: Springer.
